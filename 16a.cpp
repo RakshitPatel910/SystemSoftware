@@ -1,3 +1,16 @@
+/*
+========================================================================================================
+
+Name: 16a
+Author: Rakshit Patel
+Description: Write a program to perform mandatory locking.
+	a. Implement write lock
+	b. Implement read lock
+Date: 29th August, 2024
+
+========================================================================================================
+*/
+
 #include<iostream>
 #include<sys/file.h>
 #include<fcntl.h>
@@ -36,3 +49,23 @@ int main ( int argc, char** argv ){
 
         return 0;
 }	
+
+/*
+========================================================================================================
+Output:
+
+terminal 1:
+./a.out file1.txt
+Acquiring write lock.....
+Acquired write lock!!!
+
+terminal 2:
+./a.out file1.txt
+Acquiring write lock.....
+
+terminal 3:
+./b.out file1.txt
+Acquiring read lock.....
+
+========================================================================================================
+*/

@@ -1,3 +1,14 @@
+/*
+========================================================================================================
+
+Name: 29
+Author: Rakshit Patel
+Description: Write a program to get scheduling policy and modify the scheduling policy (SCHED_FIFO, SCHED_RR).
+Date: 29th August, 2024
+
+========================================================================================================
+*/
+
 #include<stdio.h>
 #include<unistd.h>
 #include<sched.h>
@@ -79,3 +90,29 @@ int main(){
 
 	return 0;
 }
+
+/*
+========================================================================================================
+Output:
+
+sudo ./a.out
+current policy : SCHED_OTHER
+Enter number for changing policy
+1 for FIFO
+2 for RR
+3 for OTHER
+1
+current policy : SCHED_FIFO
+
+sudo ./a.out
+current policy : SCHED_OTHER
+Enter number for changing policy
+1 for FIFO
+2 for RR
+3 for OTHER
+2
+current policy : SCHED_RR
+
+========================================================================================================
+*/
+

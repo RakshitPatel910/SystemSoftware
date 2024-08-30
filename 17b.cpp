@@ -1,3 +1,15 @@
+/*
+========================================================================================================
+
+Name: 17
+Author: Rakshit Patel
+Description: Write a program to simulate online ticket reservation. Implement write lock Write a program to open a file, store a ticket number and exit. Write a separate program, to open the file, implement write lock, read the ticket number, increment the number and print the new ticket number then close the file.
+Date: 29th August, 2024
+
+========================================================================================================
+*/
+
+
 #include<iostream>
 #include<fcntl.h>
 #include<stdio.h>
@@ -45,7 +57,9 @@ int main( int argc, char** argv ){
 
 	int tn;
 	sscanf( buff, "%d", &tn);
-	cout << tn << " " << ++tn << endl;;
+	cout <<"ticket before " <<  tn << ", ticket after " << ++tn << endl;;
+
+	getchar();
 
 	char buff1[ (int)((ceil(log10(tn))+1)*sizeof(char)) ];
 	sprintf( buff1, "%d", tn);
@@ -63,4 +77,23 @@ int main( int argc, char** argv ){
 
         return 0;
 }
+
+/*
+========================================================================================================
+Output:
+
+terminal 1:
+./b.out tickets.txt
+Acquiring write lock.....
+Acquired write lock!!!
+Enter existing ticket number
+ticket before 6, ticket after 7
+
+
+terminal 2:
+./b.out tickets.txt
+Acquiring write lock.....
+
+========================================================================================================
+*/
 

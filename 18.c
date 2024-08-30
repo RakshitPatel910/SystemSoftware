@@ -1,3 +1,16 @@
+/*
+========================================================================================================
+
+Name: 18
+Author: Rakshit Patel
+Description: Write a program to perform Record locking.
+	a. Implement write lock
+	b. Implement read lock
+Date: 29th August, 2024
+
+========================================================================================================
+*/
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -78,20 +91,35 @@ int main( int argc, char** argv ){
         int f = open( argv[1], O_CREAT | O_RDWR, 0777 );
 
         struct flock reclck;
-        struct Record arrRec[3];
-        for( int i = 0; i < 3; i++ ){
-                struct Record r;
-                r.rnum = i;
-                r.val = 5;
-                arrRec[i] = r ;
-	}
-
-        int w = write(f, &arrRec, sizeof(arrRec) );
+//        struct Record arrRec[3];
+//        for( int i = 0; i < 3; i++ ){
+//                struct Record r;
+//                r.rnum = i;
+//                r.val = 5;
+//                arrRec[i] = r ;
+//	}
+//
+//        int w = write(f, &arrRec, sizeof(arrRec) );
 
         int m;
+	printf("For setting values enter 2\n");
 	printf("For read enter 1\n");
 	printf("For write enter 0\n");
 	scanf("%d", &m);
+
+	if( m == 2 ){
+		struct Record arrRec[3];
+        	for( int i = 0; i < 3; i++ ){
+                	struct Record r;
+                	r.rnum = i;
+               		r.val = 0;
+                	arrRec[i] = r ;
+        	}
+
+        	int w = write(f, &arrRec, sizeof(arrRec) );
+
+		return 0;
+	}
 
 	int rnum;
 	printf("\nChoose record from 0, 1, 2\n");
@@ -103,11 +131,6 @@ int main( int argc, char** argv ){
 		printf("Acquiring read lock.....\n");
 
 		readRec( f, rnum, &r, &reclck );
-
-		//printf("Acquired read lock!!!\n");
-		//getchar();
-		//printf("Releasing read lock.....\n");
-		//printf("Lock released!!!\n");
 	}
 	else {
 		printf("Acquiring write lock.....\n");
@@ -117,3 +140,83 @@ int main( int argc, char** argv ){
 
         return 0;
 }
+
+/*
+========================================================================================================
+Output:
+
+./a.out records.txt 
+For setting values enter 2
+For read enter 1
+For write enter 0
+2
+
+READ ON RECORD  0:
+terminal 1:
+./a.out records.txt
+For setting values enter 2
+For read enter 1
+For write enter 0
+1
+
+Choose record from 0, 1, 2
+0
+Acquiring read lock.....
+Acquired read lock!!!
+value in record 0 is 0
+
+terminal 2:
+./a.out records.txt
+For setting values enter 2
+For read enter 1
+For write enter 0
+1
+
+Choose record from 0, 1, 2
+0
+Acquiring read lock.....
+Acquired read lock!!!
+value in record 0 is 0
+
+WRITE ON SAME AND DIFFERENT RECORDS:
+terminal 1:
+./a.out records.txt
+For setting values enter 2
+For read enter 1
+For write enter 0
+0
+
+Choose record from 0, 1, 2
+0
+Acquiring write lock.....
+Acquired write lock!!!
+value in record 0 is 0value in record 0 changed to 1
+
+terminal 2:
+./a.out records.txt
+For setting values enter 2
+For read enter 1
+For write enter 0
+0
+
+Choose record from 0, 1, 2
+0
+Acquiring write lock.....
+
+terminal 3:
+./a.out records.txt
+For setting values enter 2
+For read enter 1
+For write enter 0
+0
+
+Choose record from 0, 1, 2
+2
+Acquiring write lock.....
+Acquired write lock!!!
+value in record 2 is 0value in record 2 changed to 1
+
+
+========================================================================================================
+*/
+
