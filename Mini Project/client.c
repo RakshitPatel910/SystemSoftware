@@ -43,7 +43,7 @@ int handle_admin( int client_socket, struct User *admin ){
     // send( client_socket, &opt, sizeof(opt), 0 );
 
     while( 1 ){
-        int opt;
+        int opt = 0;
 
         printf("Enter option number: ");
         scanf("%d", &opt );
@@ -52,7 +52,8 @@ int handle_admin( int client_socket, struct User *admin ){
 
         if (opt == 1) { // Add New Bank Employee
             addEmployee(client_socket);
-        } else if (opt == 2) { // Modify Customer/Employee Details
+        } 
+        else if (opt == 2) { // Modify Customer/Employee Details
             int choice;
             printf("Enter your choice:\n1. Modify Customer Details\n2. Modify Employee Details\n");
             scanf("%d", &choice);
@@ -91,6 +92,7 @@ int handle_admin( int client_socket, struct User *admin ){
                 send(client_socket, &employee_id, sizeof(employee_id), 0);
 
                 struct Employee emp;
+                emp.id = employee_id;
                 printf("Enter new username: ");
                 scanf("%s", emp.username);
                 printf("Enter new password: ");

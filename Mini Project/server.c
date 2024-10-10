@@ -145,15 +145,16 @@ int handle_admin( int client_socket, struct User *admin ){
         int opt;
         recv( client_socket, &opt, sizeof(opt), 0 );
 
-        printf("%d\n", opt);
+        printf("opt val %d\n", opt);
         switch ( opt ){
             case 1 :   // Add New Bank Employee
                 addEmployee( client_socket );
+                opt = 1;
                 break;
             case 2 : { // Modify Customer/Employee Details
                 int choice;
                 recv(client_socket, &choice, sizeof(choice), 0);
-
+                printf("choice val %d\n", choice);
                 if (choice == 1) { // Modify Customer Details
                     // int customer_id;
                     // recv(client_socket, &customer_id, sizeof(customer_id), 0);
@@ -186,28 +187,31 @@ int handle_admin( int client_socket, struct User *admin ){
                     int employee_id;
                     recv(client_socket, &employee_id, sizeof(employee_id), 0);
 
-                    // int employee_fd = open("./dataBaseFiles/employee/employee.txt", O_RDWR);
+                    int employee_fd = open("./dataBaseFiles/employee/employee.txt", O_RDWR);
                     struct Employee employee;
 
-                    // printf( "%d\n", sizeof(employee) * employee_id );
-                    printf( "%d\n", employee_id );
-                    // lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-                    // read(employee_fd, &employee, sizeof(employee));
+                    printf( "size %ld\n", sizeof(employee) * employee_id );
+                    printf( "emp_id %d\n", employee_id );
 
-                    // printf("%d, %s, %s\n", employee.id, employee.username, employee.password);
+                    lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
+                    read(employee_fd, &employee, sizeof(employee));
 
-                    // char new_username[15];
-                    // char new_password[15];
+                    printf("%d, %s, %s\n", employee.id, employee.username, employee.password);
+
+                    char new_username[15];
+                    char new_password[15];
                     // recv(client_socket, new_username, sizeof(new_username), 0);
                     // recv(client_socket, new_password, sizeof(new_password), 0);
+                    recv( client_socket, &employee, sizeof(employee), 0 );
 
                     // strcpy(employee.username, new_username);
                     // strcpy(employee.password, new_password);
+                    printf("new emp %d, %s, %s\n", employee.id, employee.username, employee.password);
 
-                    // lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-                    // write(employee_fd, &employee, sizeof(employee));
+                    lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
+                    write(employee_fd, &employee, sizeof(employee));
 
-                    // close(employee_fd);
+                    close(employee_fd);
 
                     send(client_socket, "Employee details modified successfully", MAX_MESSAGE_SIZE, 0);
                 } else {
