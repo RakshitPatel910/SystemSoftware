@@ -10,19 +10,11 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
+#include "./headers/admin.h"
+#include "./headers/const.h"
+
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE_SIZE 256
-
-struct User {
-    char username[50];
-    char password[50];
-};
-
-struct Employee {
-    int id;
-    char username[15];
-    char password[15];
-};
 
 int handle_login( int client_socket, struct User *user ){
     int users_file_fd = open( "users.txt", O_RDWR );
@@ -36,18 +28,6 @@ int handle_login( int client_socket, struct User *user ){
     
     int tu;
     read( total_user_fd, &tu, sizeof(tu) );
-
-
-    // tu = 2;
-    // tu = tu + 1;
-    // lseek( total_user_fd, 0 , SEEK_SET );
-    // write( total_user_fd, &tu, sizeof(tu) );
-    // printf( "%d, %ld\n", tu, sizeof(*user) * tu );
-
-    // int l = lseek( users_file_fd, sizeof(*user) * tu , SEEK_SET );
-    // int l = lseek( users_file_fd, 0 , SEEK_SET );
-    
-    // write( users_file_fd, user, sizeof(user_info) );
 
     lseek( users_file_fd, 0 , SEEK_SET );
     // printf("%d\n",l);
@@ -79,168 +59,6 @@ int handle_login( int client_socket, struct User *user ){
     return isValid;
 }
 
-int addEmployee( int client_socket ){
-    printf("op 1\n");
-    struct Employee emp;
-
-    recv( client_socket, &emp, sizeof(emp), 0 );
-    printf( "%d, %s, %s\n", emp.id, emp.username, emp.password );
-
-    int total_emp_fd = open( "./dataBaseFiles/employee/totalEmp.txt", O_RDWR );
-    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
-
-    printf( "%d, %d\n", total_emp_fd, emp_list_fd );
-    int total_emp = 0;
-    if( read( total_emp_fd, &total_emp, sizeof(total_emp) ) <= 0 ){
-        printf("no entries\n");
-        printf("%d\n", total_emp);
-        total_emp = 0;
-
-        // struct Employee employee = {
-        //     .id = total_emp,
-        //     .username = emp.username,
-        //     .password = emp.password
-        // };
-        // memcpy(employee.username, emp.username, sizeof(employee.username));
-        // memcpy(employee.password, emp.password, sizeof(employee.password));
-        emp.id = total_emp;
-
-        printf( "%d, %s, %s", emp.id, emp.username, emp.password );
-        lseek( emp_list_fd, 0, SEEK_SET );
-        write( emp_list_fd, &emp, sizeof(emp) );
-
-        total_emp++;
-        lseek( total_emp_fd, 0, SEEK_SET );
-        write( total_emp_fd, &total_emp, sizeof(total_emp) );
-    }
-    else{
-        printf("%d\n", total_emp);
-        // struct Employee employee = {
-        //     total_emp,
-        //     *emp.username,
-        //     *emp.password
-        // };
-        emp.id = total_emp;
-
-        if( total_emp > 50 ) return 0;
-
-        printf( "%d, %s, %s", emp.id, emp.username, emp.password );
-        lseek( emp_list_fd, sizeof(emp) * total_emp, SEEK_SET );
-        write( emp_list_fd, &emp, sizeof(emp) );
-    
-        total_emp++;
-        lseek( total_emp_fd, 0, SEEK_SET );
-        write( total_emp_fd, &total_emp, sizeof(total_emp) );
-    }
-
-    close( total_emp_fd );
-    close( emp_list_fd );
-
-    return 0;
-}
-
-int handle_admin( int client_socket, struct User *admin ){
-    
-    while( 1 ){
-        int opt;
-        recv( client_socket, &opt, sizeof(opt), 0 );
-
-        printf("opt val %d\n", opt);
-        switch ( opt ){
-            case 1 :   // Add New Bank Employee
-                addEmployee( client_socket );
-                opt = 1;
-                break;
-            case 2 : { // Modify Customer/Employee Details
-                int choice;
-                recv(client_socket, &choice, sizeof(choice), 0);
-                printf("choice val %d\n", choice);
-                if (choice == 1) { // Modify Customer Details
-                    // int customer_id;
-                    // recv(client_socket, &customer_id, sizeof(customer_id), 0);
-
-                    // int customer_fd = open("./dataBaseFiles/customer/customer.txt", O_RDWR);
-                    // struct User customer;
-                    // lseek(customer_fd, sizeof(customer) * customer_id, SEEK_SET);
-                    // read(customer_fd, &customer, sizeof(customer));
-
-                    // printf("%d, %s, %s, %f\n", customer.id, customer.username, customer.password, customer.balance);
-
-                    // char new_username[50];
-                    // char new_password[50];
-                    // float new_balance;
-                    // recv(client_socket, new_username, sizeof(new_username), 0);
-                    // recv(client_socket, new_password, sizeof(new_password), 0);
-                    // recv(client_socket, &new_balance, sizeof(new_balance), 0);
-
-                    // strcpy(customer.username, new_username);
-                    // strcpy(customer.password, new_password);
-                    // customer.balance = new_balance;
-
-                    // lseek(customer_fd, sizeof(customer) * customer_id, SEEK_SET);
-                    // write(customer_fd, &customer, sizeof(customer));
-
-                    // close(customer_fd);
-
-                    // send(client_socket, "Customer details modified successfully", MAX_MESSAGE_SIZE, 0);
-                } else if (choice == 2) { // Modify Employee Details
-                    int employee_id;
-                    recv(client_socket, &employee_id, sizeof(employee_id), 0);
-
-                    int employee_fd = open("./dataBaseFiles/employee/employee.txt", O_RDWR);
-                    struct Employee employee;
-
-                    printf( "size %ld\n", sizeof(employee) * employee_id );
-                    printf( "emp_id %d\n", employee_id );
-
-                    lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-                    read(employee_fd, &employee, sizeof(employee));
-
-                    printf("%d, %s, %s\n", employee.id, employee.username, employee.password);
-
-                    char new_username[15];
-                    char new_password[15];
-                    // recv(client_socket, new_username, sizeof(new_username), 0);
-                    // recv(client_socket, new_password, sizeof(new_password), 0);
-                    recv( client_socket, &employee, sizeof(employee), 0 );
-
-                    // strcpy(employee.username, new_username);
-                    // strcpy(employee.password, new_password);
-                    printf("new emp %d, %s, %s\n", employee.id, employee.username, employee.password);
-
-                    lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-                    write(employee_fd, &employee, sizeof(employee));
-
-                    close(employee_fd);
-
-                    send(client_socket, "Employee details modified successfully", MAX_MESSAGE_SIZE, 0);
-                } else {
-                    send(client_socket, "Invalid choice", MAX_MESSAGE_SIZE, 0);
-                }
-                break;
-            };
-            break;
-            case 3 : { // Manage User Roles
-
-            }
-            case 4 : { // Change Password
-
-            }
-            case 5 : { // Logout
-
-            }
-            case 6 : { // Exit
-
-            }
-            default :
-                send(client_socket, "Invalid choice", MAX_MESSAGE_SIZE, 0);
-                break;
-        }
-    }
-    
-    return 0;
-}
-
 int main(){
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
@@ -269,7 +87,7 @@ int main(){
     }
 
     // Listen for incoming client connections
-    if (listen(server_socket, 3) < 0) {
+    if (listen(server_socket, 10) < 0) {
         perror("listen failed");
         exit(1);
     }
@@ -288,6 +106,8 @@ int main(){
         pid_t pid = fork();
         if( pid == 0 ){
             // ************* CLIENT HANDLING *************
+            close(server_socket);
+
             struct User user = {"client1", "client123"};
             recv( client_socket, &user, sizeof(user), 0 );
 
@@ -299,15 +119,66 @@ int main(){
             int isValid = handle_login( client_socket, &user );
 
             if( isValid ){
-                printf("Admin operation started.....\n");
-                // while( 1 ){
-                    handle_admin( client_socket, &user );
-                // }
+
+                printf("Client is connected to the server\n");
+
+                char read_buffer[1000], write_buffer[1000];
+                int read_bytes, write_bytes;
+                int choice;
+
+                write_bytes = send(client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0);
+                // write_bytes = send(client_socket, "INITIAL_PROMPT", strlen("INITIAL_PROMPT"), 0);
+                if (write_bytes == -1) {
+                    perror("Sending initial prompt\n");
+                    return 0;
+                }
+                memset(read_buffer, 0, sizeof(read_buffer));
+
+                printf("1st\n");
+                read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer)-1, 0);
+                printf( "%d, %d\n", read_bytes, choice );
+                if (read_bytes == -1) {
+                    perror("Reading choice\n");
+                    return 0;
+                }
+                if (read_bytes == 0) {
+                    printf("No data from client\n");
+                }
+
+                printf("2ndt\n");
+                choice = atoi(read_buffer);
+                printf("choice %d\n", choice);
+
+                switch (choice) {
+                    case 1:
+                        handle_admin(client_socket, &user);
+                        break;
+                    case 2:
+                        // manager_handler(client_socket);
+                        break;
+                    case 3:
+                        // employee_handler(client_socket);
+                        break;
+                    case 4:
+                        // customer_handler(client_socket);
+                        break;
+                    default:
+                        // exit_handler(client_socket);
+                        break;
+                }
+            sleep(3);
+                
             }
+            else{
+
+            }
+            close( client_socket );
+            _exit(0);
             
         }
         else{
             close( client_socket );
+            sleep(3);
         }
     }
 

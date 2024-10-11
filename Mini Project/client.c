@@ -1,10 +1,11 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 #include<unistd.h>
 #include<sys/socket.h>
 #include<sys/types.h>
 #include<netinet/ip.h>
-#include <arpa/inet.h>
+#include<arpa/inet.h>
 
 #define MAX_MESSAGE_SIZE 256
 
@@ -164,31 +165,51 @@ int main(){
 
     if( access < 1 ){
         printf("Login Unsuccessfull\n");
+        return 0;
     }
     else{
         printf("Login successfull\n");
     }
 
-    while( 1 ){
-        // if( access == 1 ){
-            handle_admin( client_socket, &user );
-        // }
+    // while( 1 ){
+    char read_buffer[1000], write_buffer[1000], buffer[1000];
+    int read_bytes = 1, write_bytes;
+
+    while (read_bytes) {
+        memset(read_buffer, 0, sizeof(read_buffer));
+        memset(write_buffer, 0, sizeof(write_buffer));
+
+        read_bytes = recv(client_socket, read_buffer, sizeof(read_buffer), 0);
+        if (read_bytes == -1) {
+            perror("Read from client socket\n");
+            return 0;
+        }
+        if (read_bytes == 0) {
+            printf("Didn't receive anything from server\n");
+            return 0;
+        }
+        if (strchr(read_buffer, '$') != NULL) {
+            strncpy(buffer, read_buffer, sizeof(read_buffer) - 2);
+            printf("%s\n", buffer);
+            break;
+        }
+
+        memset(write_buffer, 0, sizeof(write_buffer));
+        printf("%s\n", read_buffer);
+        // getchar();
+        
+        scanf("%[^\n]%*c", write_buffer);
+
+        printf("e\n");
+        printf("%s\n", write_buffer);
+        write_bytes = send(client_socket, write_buffer, sizeof(write_buffer), 0);
+        printf("e\n");
+        if (write_bytes == -1) {
+            perror("Write to client socket\n");
+            return 0;
+        }
     }
-
-    while( 1 ){
-        printf("Banking Management System\n");
-        printf("1. View account balance\n");
-        printf("2. Deposit money\n");
-        printf("3. Withdraw money\n");
-        printf("4. Transfer funds\n");
-        printf("5. Apply for loan\n");
-        printf("6. Exit\n");
-
-        printf("Enter your choice: ");
-        scanf("%d", &option);
-
-
-    }
+    // }
 
     return 0;
 } 
