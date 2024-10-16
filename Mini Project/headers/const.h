@@ -12,8 +12,7 @@
 2. Bank Employee\n\
 3. Manager\n\
 4. Admin\n\
-5. Exit\
-"
+5. Exit\n"
 
 #define EMPLOYEE_LOGIN_PAGE "Welcome Employee! Enter your details to log in\n"
 #define CUSTOMER_LOGIN_PAGE "Welcome Customer! Enter your details to log in\n"
@@ -67,6 +66,7 @@
 
 #define USERNAME "Enter your username:"
 #define PASSWORD "Enter your password:"
+#define ROLE "Enter role:"
 #define NEW_PASSWORD "Enter new password:"
 
 #define SUCCESS "Operation was successfull"
@@ -97,12 +97,6 @@
 #define CUSTOMER_FILE "./Records/customer.txt"
 #define EMPLOYEE_FILE "./Records/employee.txt"
 #define TRANSACTION_FILE "./Records/transaction.txt"
-
-#define ADMINISTRATOR_USERNAME "Himanshu"
-#define ADMINISTRATOR_PASSWORD "10vrzSg43HfWI"  // 123456
-
-#define MANAGER_USERNAME "Himanshu"
-#define MANAGER_PASSWORD "10vrzSg43HfWI"  // 123456
 
 #define TO_PROCEED "Press any key to proceed (Enter to logout)"
 #define LOGOUT "Logging off! Have a nice day.$"

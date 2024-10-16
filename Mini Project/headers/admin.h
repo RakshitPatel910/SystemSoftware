@@ -23,15 +23,47 @@
 int handle_admin( int client_socket, struct User *admin );
 int addEmployee( int client_socket );
 int modifyCustEmp( int client_socket );
+int manage_user_role( int client_socket );
+
 
 int addEmployee( int client_socket ){
-    char read_buffer[1000], write_buffer[1000];  //, buffer[1000]
-    int read_bytes, write_bytes;
-    
     printf("op 1\n");
     struct Employee emp;
 
-    recv( client_socket, &emp, sizeof(emp), 0 );
+    char read_buffer[1000], write_buffer[1000];  //, buffer[1000]
+    int read_bytes, write_bytes;
+    
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    write_bytes = send(client_socket, USERNAME, strlen(USERNAME), 0);
+    read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
+    // printf("%s ", read_buffer);
+    // read_bytes = recv(client_socket, &emp.username, sizeof(emp.username), 0);
+    // read_bytes = recv(client_socket, &emp.username, 15, 0);
+    strcpy(emp.username, read_buffer);
+    printf("uname %s, %d\n", emp.username, read_bytes);
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    // memset(write_buffer, 0, sizeof(write_buffer));
+
+    write_bytes = send(client_socket, ROLE, strlen(ROLE), 0);
+    read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
+    emp.role = atoi( read_buffer );
+    memset(read_buffer, 0, sizeof(read_buffer));
+
+
+    write_bytes = send(client_socket, PASSWORD, strlen(PASSWORD), 0);
+    read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
+    // printf("%s ", read_buffer);
+    // read_bytes = recv(client_socket, &emp.password, sizeof(emp.password), 0);
+    // read_bytes = recv(client_socket, &emp.password, 15, 0);
+    strcpy(emp.password, read_buffer);
+    printf("pass %s, %d\n", emp.password, read_bytes);
+
+
+
+    // recv( client_socket, &emp, sizeof(emp), 0 );
     printf( "%d, %s, %s\n", emp.id, emp.username, emp.password );
 
     int total_emp_fd = open( "./dataBaseFiles/employee/totalEmp.txt", O_RDWR );
@@ -46,7 +78,7 @@ int addEmployee( int client_socket ){
 
         emp.id = total_emp;
 
-        printf( "%d, %s, %s", emp.id, emp.username, emp.password );
+        printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
         lseek( emp_list_fd, 0, SEEK_SET );
         write( emp_list_fd, &emp, sizeof(emp) );
 
@@ -60,7 +92,7 @@ int addEmployee( int client_socket ){
 
         if( total_emp > 50 ) return 0;
 
-        printf( "%d, %s, %s", emp.id, emp.username, emp.password );
+        printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
         lseek( emp_list_fd, sizeof(emp) * total_emp, SEEK_SET );
         write( emp_list_fd, &emp, sizeof(emp) );
     
@@ -145,6 +177,55 @@ int modifyCustEmp( int client_socket ){
             
 }
 
+int manage_user_role( int client_socket ){
+    char read_buffer[1000], write_buffer[1000], buffer[1000];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    strcpy(write_buffer, "Enter employee Id:");
+    write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    int emp_id = atoi( read_buffer );
+
+    struct Employee emp;
+
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
+
+    lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
+    read( emp_list_fd, &emp, sizeof(emp) );
+
+    if( emp.role == 0 ){
+        // role is employee
+        sprintf( write_buffer, "ID: %d, Role: Employee\nEnter new role (0 for employee and 1 for manager):\n", emp_id );
+    }
+    else if ( emp.role == 1){
+        //role is manager
+        sprintf( write_buffer, "ID: %d, Role: Manager\nEnter new role (0 for employee and 1 for manager):\n", emp_id );
+    }
+    
+    write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    emp.role = atoi( read_buffer );
+
+    lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
+    write_bytes = write( emp_list_fd, &emp, sizeof(emp) );
+
+    if( write_bytes != -1 ){
+        strcpy( write_buffer, "Role changed succesfully!\n" );
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+
+    return 0;
+
+}
+
 int handle_admin( int client_socket, struct User *admin ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
@@ -157,8 +238,11 @@ int handle_admin( int client_socket, struct User *admin ){
             return 0;
         }
 
-        int opt;
-        recv( client_socket, &opt, sizeof(opt), 0 );
+        memset(read_buffer, 0, sizeof(read_buffer));
+        read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
+
+        int opt = atoi( read_buffer );
+        // recv( client_socket, &opt, sizeof(opt), 0 );
 
         printf("opt val %d\n", opt);
         switch ( opt ){
@@ -168,9 +252,9 @@ int handle_admin( int client_socket, struct User *admin ){
             case 2 :  // Modify Customer/Employee Details
                 modifyCustEmp( client_socket );
                 break;
-            case 3 : { // Manage User Roles
-
-            }
+            case 3 :  // Manage User Roles
+                manage_user_role( client_socket );
+                break;
             case 4 : { // Change Password
 
             }

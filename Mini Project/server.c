@@ -135,7 +135,7 @@ int main(){
                 memset(read_buffer, 0, sizeof(read_buffer));
 
                 printf("1st\n");
-                read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer)-1, 0);
+                read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
                 printf( "%d, %d\n", read_bytes, choice );
                 if (read_bytes == -1) {
                     perror("Reading choice\n");
