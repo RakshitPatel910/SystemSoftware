@@ -14,6 +14,7 @@
 #include <fcntl.h>
 
 #include "../structures/users.h"
+#include "./commonFunc.h"
 #include "./const.h"
 
 #define MAX_CLIENTS 10
@@ -77,6 +78,9 @@ int addEmployee( int client_socket ){
         total_emp = 0;
 
         emp.id = total_emp;
+        for( int i = 0; i < 15; i++ ){
+            emp.loanAssigned[i] = -1;
+        }
 
         printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
         lseek( emp_list_fd, 0, SEEK_SET );
@@ -89,8 +93,9 @@ int addEmployee( int client_socket ){
     else{
         printf("%d\n", total_emp);
         emp.id = total_emp;
-
-        if( total_emp > 50 ) return 0;
+        for( int i = 0; i < 15; i++ ){
+            emp.loanAssigned[i] = -1;
+        }
 
         printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
         lseek( emp_list_fd, sizeof(emp) * total_emp, SEEK_SET );
@@ -178,8 +183,9 @@ int modifyCustEmp( int client_socket ){
 }
 
 int manage_user_role( int client_socket ){
-    char read_buffer[1000], write_buffer[1000], buffer[1000];
+    struct Employee emp;
     int read_bytes, write_bytes;
+    char read_buffer[1000], write_buffer[1000], buffer[1000];
 
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
@@ -191,12 +197,14 @@ int manage_user_role( int client_socket ){
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int emp_id = atoi( read_buffer );
 
-    struct Employee emp;
-
     int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
+
+    apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) * emp_id );
 
     lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
     read( emp_list_fd, &emp, sizeof(emp) );
+
+    release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp_id );
 
     if( emp.role == 0 ){
         // role is employee
@@ -214,12 +222,17 @@ int manage_user_role( int client_socket ){
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     emp.role = atoi( read_buffer );
 
+    apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) * emp_id );
+
     lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
     write_bytes = write( emp_list_fd, &emp, sizeof(emp) );
+
+    release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp_id );
 
     if( write_bytes != -1 ){
         strcpy( write_buffer, "Role changed succesfully!\n" );
         send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     }
 
     return 0;
