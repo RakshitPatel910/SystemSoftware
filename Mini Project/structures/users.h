@@ -26,8 +26,11 @@ struct Customer {
 struct Employee {
     int id;
     int role;
+
     char username[15];
     char password[15];
+
+    int totalLoanAssigned;
     int loanAssigned[15];
 };
 

@@ -24,8 +24,8 @@
 int handle_employee( int client_socket, struct User *employee );
 int addCustomer( int client_socket );
 int modifyCustomer( int client_socket );
-int processLoanApplication( int client_socket );
-int viewAssignedLoans( int client_socket );
+int processLoanApplication( int client_socket, int empId );
+int viewAssignedLoans( int client_socket, int empId );
 
 int addCustomer( int client_socket ){
     struct Customer customer;
@@ -161,7 +161,7 @@ int processLoanApplication( int client_socket, int empId ){
     int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
     int loan_list_fd = open( "./dataBaseFiles/loan/loanList.txt", O_RDWR );
 
-    Loan loan_details;
+    struct Loan loan_details;
     apply_file_lock( loan_list_fd, LOCK_EXCLUSIVE, sizeof(loan_details), sizeof(loan_details) * loan_id );
 
     lseek( loan_list_fd, sizeof(loan_details) * loan_id, SEEK_SET );
