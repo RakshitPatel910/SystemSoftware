@@ -16,7 +16,7 @@ struct Customer {
     int acc_no;
     float balance;
     bool active;
-    int loan_status;
+    int loanID;
 
     char username[15];
     char password[15];

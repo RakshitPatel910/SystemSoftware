@@ -93,9 +93,11 @@
 #define DEPOSIT_AMOUNT "Enter the amount you want to deposit: "
 #define TRANSFER_AMOUNT "Enter the amount you want to Transfer: "
 #define WHOM_TO_TRANSFER \
-    "Enter the username to whom you want to transfer the funds"
+    "Enter the Acc. number to whom you want to transfer the funds"
 #define INSUFFICIENT_BALANCE \
     "Balance is not sufficient, please try with a lower amount"
+#define NEGATIVE_BALANCE \
+    "Invalid withdraw amount, please try with valid amount\n"
 
 #define INVALID_USERNAME "You entered wrong username"
 #define INVALID_USERID "You entered wrong user-id"
@@ -110,9 +112,16 @@
 #define LOGOUT "Logging off! Have a nice day.$"
 #define EXIT "Exiting from the server.$"
 
+#define ALREADY_APPLIED " You have already applied for loan"
+#define ASK_LOAN_AMOUNT "Enter the amount of loan to apply: \n"
+#define LOAN_APPL_SUCCESS "Loan applied successfully.\n"
 #define ASK_LOAN_ID "Enter the loan id: \n"
 #define ASK_LOAN_APPR "Do you want to approve this loan? (enter 1 to approve and 0 to reject): \n"
 #define LOAN_ASSIGNED "Loan assigned successfully.\n"
 
+#define GIVE_FEEDBACK "Enter you feedback: \n"
+#define FDBCK_ADD_SUCC "Feedback added successfully.\n\n"
+#define FEEDBACK_REVIEW "Do you want to mark entered feedback as reviewed ? (If yes enter 1)\n"
+#define FDBCK_REV_SUCC "Feedback marked as reviewed successfully.\n\n"
 
 #endif

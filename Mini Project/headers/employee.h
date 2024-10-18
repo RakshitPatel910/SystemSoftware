@@ -65,7 +65,7 @@ int addCustomer( int client_socket ){
         customer.acc_no = total_cust;
         customer.balance = 0;
         customer.active = true;
-        customer.loan_status = 0;
+        customer.loanID = -1;
         for( int i = 0; i < 15; i++ ){
             customer.transaction[i] = -1;
         }
@@ -94,7 +94,7 @@ int addCustomer( int client_socket ){
         customer.acc_no = total_cust;
         customer.balance = 0;
         customer.active = true;
-        customer.loan_status = 0;
+        customer.loanID = -1;
         for( int i = 0; i < 15; i++ ){
             customer.transaction[i] = -1;
         }
@@ -180,7 +180,7 @@ int processLoanApplication( int client_socket, int empId ){
     lseek( cust_list_fd, sizeof(customer) * loan_details.custId, SEEK_SET );
     read( cust_list_fd, &customer, sizeof(customer) );
 
-    customer.loan_status = -1;
+    customer.loanID = -1;
     if( loan_status == 1 ){
         customer.balance += loan_details.amount;
     }
