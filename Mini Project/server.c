@@ -11,7 +11,9 @@
 #include <fcntl.h>
 
 #include "./headers/admin.h"
+#include "./headers/manager.h"
 #include "./headers/employee.h"
+#include "./headers/customer.h"
 #include "./headers/const.h"
 
 #define MAX_CLIENTS 10
@@ -117,6 +119,13 @@ int main(){
 
             // int users_file_fd = open( "users.txt", O_RDONLY | O_WRONLY );
 
+            
+            // char buff[15];
+            // send(client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0);
+
+            // recv(client_socket, &buff, sizeof(buff), 0);
+            // int login_level = atoi( buff );
+
             int isValid = handle_login( client_socket, &user );
             // int isValid = 1;
 
@@ -156,13 +165,13 @@ int main(){
                         handle_admin(client_socket, &user);
                         break;
                     case 2:
-                        // manager_handler(client_socket);
+                        handle_manager(client_socket, &user);
                         break;
                     case 3:
                         handle_employee(client_socket, &user);
                         break;
                     case 4:
-                        // customer_handler(client_socket);
+                        handle_customer(client_socket, &user, 2);
                         break;
                     default:
                         // exit_handler(client_socket);

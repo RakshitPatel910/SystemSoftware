@@ -20,7 +20,8 @@ struct Customer {
 
     char username[15];
     char password[15];
-    int transaction[ 15 ];
+    int transaction[15];
+    int tp;
 };
 
 struct Employee {

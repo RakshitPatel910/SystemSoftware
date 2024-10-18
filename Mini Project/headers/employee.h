@@ -69,6 +69,7 @@ int addCustomer( int client_socket ){
         for( int i = 0; i < 15; i++ ){
             customer.transaction[i] = -1;
         }
+        customer.tp = 0;
 
         printf( "%d total_cust 0\n", total_cust );
         apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) * customer.acc_no );
@@ -98,6 +99,7 @@ int addCustomer( int client_socket ){
         for( int i = 0; i < 15; i++ ){
             customer.transaction[i] = -1;
         }
+        customer.tp = 0;
 
         printf( "%d total_cust 1\n", total_cust );
         apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) * customer.acc_no );

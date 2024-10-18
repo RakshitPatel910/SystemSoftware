@@ -16,22 +16,24 @@
 #include "../structures/users.h"
 #include "../structures/loan.h"
 #include "../structures/feedback.h"
+#include "../structures/transaction.h"
 #include "./commonFunc.h"
 #include "./const.h"
 
-int handle_customer( int client_socket, struct User* user );
+int handle_customer( int client_socket, struct User* user, int cust_id );
 int viewBalance( int client_socket, int cust_id );
-int depsitMoney( int client_socket, int cust_id );
+int depositMoney( int client_socket, int cust_id );
 int withdrawMoney( int client_socket, int cust_id );
 int transferMoney( int client_socket, int cust_id );
 int loanApplication( int client_socket, int cust_id );
 int addFeedback( int client_socket, int cust_id );
+int viewTransaction( int client_socket, int cust_id );
 
 int viewBalance( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
-    int cust_list_fd = open( "../dataBaseFiles/customer/customer.txt", O_RDONLY );
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDONLY );
 
     struct Customer customer;
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) *cust_id );
@@ -51,29 +53,52 @@ int viewBalance( int client_socket, int cust_id ){
     return 0;
 }
 
-int depsitMoney( int client_socket, int cust_id ){
+int depositMoney( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
-    int cust_list_fd = open( "../dataBaseFiles/customer/customer.txt", O_RDWR );
+    printf("deposit started\n");
 
-    write_bytes = send( cust_list_fd, DEPOSIT_AMOUNT, strlen(DEPOSIT_AMOUNT), 0 );
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
+    
+    printf("%d\n", cust_list_fd);
+
+    write_bytes = send( client_socket, DEPOSIT_AMOUNT, strlen(DEPOSIT_AMOUNT), 0 );
     
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     float deposit_amount = atof( read_buffer );
 
     struct Customer customer;
+    struct Transaction transaction;
+    transaction.tID = -1;
+    transaction.custID = cust_id;
+    transaction.amount = deposit_amount;
+    transaction.transactionType = 1;
+    
+
     apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) *cust_id );
 
     lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
     read( cust_list_fd, &customer, sizeof(customer) );
 
+    printf("init %f\n", customer.balance);
     customer.balance += deposit_amount;
+
     lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    transaction.transactionTime = time( NULL );
     write( cust_list_fd, &customer, sizeof(customer) );
+
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    read( cust_list_fd, &customer, sizeof(customer) );
+
+    printf("after %f\n", customer.balance);
 
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
     
+
+    addTransaction( &transaction );
+    addTransactionToCustomer( &customer, &transaction );
+
     sprintf( write_buffer, "Balance after deposit: %f\n\n", customer.balance );
     write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
 
@@ -88,7 +113,8 @@ int withdrawMoney( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
-    int cust_list_fd = open( "../dataBaseFiles/customer/customer.txt", O_RDWR );
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
+
 
     struct Customer customer;
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) *cust_id );
@@ -98,7 +124,8 @@ int withdrawMoney( int client_socket, int cust_id ){
 
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
 
-    write_bytes = send( cust_list_fd, WITHDRAW_AMOUNT, strlen(WITHDRAW_AMOUNT), 0 );
+
+    write_bytes = send( client_socket, WITHDRAW_AMOUNT, strlen(WITHDRAW_AMOUNT), 0 );
     
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     float withdraw_amount = atof( read_buffer );
@@ -118,14 +145,26 @@ int withdrawMoney( int client_socket, int cust_id ){
         return 0;
     }
 
+    struct Transaction transaction;
+    transaction.tID = -1;
+    transaction.custID = cust_id;
+    transaction.amount = withdraw_amount;
+    transaction.transactionType = 2;
+
+
     apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) *cust_id );
 
     customer.balance -= withdraw_amount;
     lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    transaction.transactionTime = time( NULL );
     write( cust_list_fd, &customer, sizeof(customer) );
 
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
     
+
+    addTransaction( &transaction );
+    addTransactionToCustomer( &customer, &transaction );
+
     sprintf( write_buffer, "Balance after withdraw: %f\n\n", customer.balance );
     write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
 
@@ -140,7 +179,8 @@ int transferMoney( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
-    int cust_list_fd = open( "../dataBaseFiles/customer/customer.txt", O_RDWR );
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
+
 
     struct Customer from_customer, to_customer;
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(from_customer), sizeof(from_customer) *cust_id );
@@ -150,19 +190,22 @@ int transferMoney( int client_socket, int cust_id ){
 
     release_file_lock( cust_list_fd, sizeof(from_customer), sizeof(from_customer) *cust_id );
 
-    write_bytes = send( cust_list_fd, WHOM_TO_TRANSFER, strlen(WHOM_TO_TRANSFER), 0 );
+
+    write_bytes = send( client_socket, WHOM_TO_TRANSFER, strlen(WHOM_TO_TRANSFER), 0 );
     
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int to_cust_id = atoi( read_buffer );
+
 
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
 
     lseek( cust_list_fd, sizeof(to_customer) * to_cust_id, SEEK_SET );
     read( cust_list_fd, &to_customer, sizeof(to_customer) );
 
-    release_file_lock( cust_list_fd, sizeof(from_customer), sizeof(from_customer) * to_cust_id );
+    release_file_lock( cust_list_fd, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
 
-    write_bytes = send( cust_list_fd, TRANSFER_AMOUNT, strlen(TRANSFER_AMOUNT), 0 );
+
+    write_bytes = send( client_socket, TRANSFER_AMOUNT, strlen(TRANSFER_AMOUNT), 0 );
     
     memset(read_buffer, 0, sizeof(read_buffer));
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
@@ -183,21 +226,43 @@ int transferMoney( int client_socket, int cust_id ){
         return 0;
     }
 
-    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(from_customer), sizeof(from_customer) *cust_id );
+    struct Transaction from_transaction, to_transaction;
+    from_transaction.tID = -1;
+    from_transaction.custID = from_customer.acc_no;
+    from_transaction.amount = transfer_amount;
+    from_transaction.transactionType = 3;
+
+    to_transaction.tID = -1;
+    to_transaction.custID = to_customer.acc_no;
+    to_transaction.amount = transfer_amount;
+    to_transaction.transactionType =4;
+
+
+    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(from_customer), sizeof(from_customer) * cust_id );
 
     from_customer.balance -= transfer_amount;
     lseek( cust_list_fd, sizeof(from_customer) * cust_id, SEEK_SET );
+    from_transaction.transactionTime = time( NULL );
     write( cust_list_fd, &from_customer, sizeof(from_customer) );
 
     release_file_lock( cust_list_fd, sizeof(from_customer), sizeof(from_customer) *cust_id );
     
-    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(to_customer), sizeof(to_customer) *cust_id );
+
+    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
 
     to_customer.balance += transfer_amount;
     lseek( cust_list_fd, sizeof(to_customer) * to_cust_id, SEEK_SET );
+    to_transaction.transactionTime = time( NULL );
     write( cust_list_fd, &to_customer, sizeof(to_customer) );
 
-    release_file_lock( cust_list_fd, sizeof(from_customer), sizeof(from_customer) * to_cust_id );
+    release_file_lock( cust_list_fd, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
+
+
+    addTransaction( &from_transaction );
+    addTransactionToCustomer( &from_customer, &from_transaction );
+    
+    addTransaction( &to_transaction );
+    addTransactionToCustomer( &to_customer, &to_transaction );
 
     sprintf( write_buffer, "Balance after transfer: %f\n\n", from_customer.balance );
     write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
@@ -216,7 +281,7 @@ int loanApplication( int client_socket, int cust_id ){
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
 
-    int cust_list_fd = open( "../dataBaseFiles/customer/customer.txt", O_RDWR );
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
 
     struct Customer customer;
     apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) * cust_id );
@@ -244,7 +309,7 @@ int loanApplication( int client_socket, int cust_id ){
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int amount_requested = atof( read_buffer );
 
-    int loan_list_fd = open( "../dataBaseFiles/loan/loanList.txt", O_RDWR );
+    int loan_list_fd = open( "./dataBaseFiles/loan/loanList.txt", O_RDWR );
     int file_size = lseek( loan_list_fd, 0, SEEK_END );
 
     struct Loan loan;
@@ -293,7 +358,7 @@ int addFeedback( int client_socket, int cust_id ){
 
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     
-    int feedback_list_fd = open( "../dataBaseFiles/feedback/feedback.txt", O_RDWR );
+    int feedback_list_fd = open( "./dataBaseFiles/feedback/feedback.txt", O_RDWR );
     int file_size = lseek( feedback_list_fd, 0, SEEK_END );
 
     struct Feedback feedback;
@@ -327,13 +392,17 @@ int addFeedback( int client_socket, int cust_id ){
     return 0;
 }
 
-int handle_customer( int client_socket, struct User* user ){
+int viewTransaction( int client_socket, int cust_id ){
+    return 0;
+}
+
+int handle_customer( int client_socket, struct User* user, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
     printf("customer started\n");
     while( 1 ){
-        write_bytes = send(client_socket, MANAGER_MENU, strlen(MANAGER_MENU), 0);
+        write_bytes = send(client_socket, CUSTOMER_MENU, strlen(CUSTOMER_MENU), 0);
         if (write_bytes == -1) {
             perror("Writing customer menu\n");
             return 0;
@@ -348,35 +417,35 @@ int handle_customer( int client_socket, struct User* user ){
         printf("opt val %d\n", opt);
         switch ( opt ){
             case 1 :   // View Account Balance
-                // actDeactCustomerAccount( client_socket );
+                viewBalance(client_socket, cust_id);
                 break;
             case 2 :  // Deposit Money
-                // assignLoanApplication( client_socket );
+                depositMoney(client_socket, cust_id);
                 break;
             case 3 :  // Withdraw Money
-                // reviewFeedback( client_socket );
+                withdrawMoney(client_socket, cust_id);
                 break;
-            case 4 : { // Transfer Funds
+            case 4 :  // Transfer Funds
+                transferMoney(client_socket, cust_id);
+                break;
+            case 5 :  // Apply for a Loan  
+                loanApplication(client_socket, cust_id);
+                break;
+            case 6 :  // Adding Feedback
+                addFeedback(client_socket, cust_id);
+                break;
+            case 7 :  // View Transaction History
+                viewTransaction(client_socket, cust_id);
+                break;
+            case 8 :  // Change Password
 
-            }
-            case 5 : { // Apply for a Loan  
+            
+            case 9 :  // Logout
 
-            }
-            case 6 : { // Adding Feedback
+            
+            case 10 :  // Exit
 
-            }
-            case 7 : { // View Transaction History
-
-            }
-            case 8 : { // Change Password
-
-            }
-            case 9 : { // Logout
-
-            }
-            case 10 : { // Exit
-
-            }
+            
             default :
                 send(client_socket, "Invalid choice", sizeof(write_buffer), 0);
                 break;

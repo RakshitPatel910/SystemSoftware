@@ -3,7 +3,7 @@
 
 #include<time.h>
 
-struct Transaction{
+struct Transaction {
     int tID;
     int custID;
     float amount;

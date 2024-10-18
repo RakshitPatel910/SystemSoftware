@@ -199,7 +199,7 @@ int reviewFeedback( int client_socket ){
     struct Feedback feedback_instance;
     while( read( feedback_list_fd, &feedback_instance, sizeof(feedback_instance) ) > 0){
         if( feedback_instance.reviewStatus == 0 ){
-            sprintf( buffer, "Feedback ID: %d, Customer ID: %d\nFeedback: %f\n\n", feedback_instance.feedbackId, feedback_instance.custId, feedback_instance.feedback );
+            sprintf( buffer, "Feedback ID: %d, Customer ID: %d\nFeedback: %s\n\n", feedback_instance.feedbackId, feedback_instance.custId, feedback_instance.feedback );
             strcat( write_buffer, buffer );
         }
     }
