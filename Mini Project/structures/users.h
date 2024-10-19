@@ -7,6 +7,8 @@ struct User {
     // int acc_no;
     // float balance;
     // bool active;
+    int id;
+    int access_lvl;
 
     char username[50];
     char password[50];
@@ -33,6 +35,12 @@ struct Employee {
 
     int totalLoanAssigned;
     int loanAssigned[15];
+};
+
+struct Admin{
+    int id;
+    char username[15];
+    char password[15];
 };
 
 #endif

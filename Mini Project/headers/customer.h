@@ -179,6 +179,9 @@ int transferMoney( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
     int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
 
 
@@ -198,6 +201,8 @@ int transferMoney( int client_socket, int cust_id ){
 
 
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
+
+    printf("to cust: %d\n", to_cust_id);
 
     lseek( cust_list_fd, sizeof(to_customer) * to_cust_id, SEEK_SET );
     read( cust_list_fd, &to_customer, sizeof(to_customer) );
@@ -236,7 +241,7 @@ int transferMoney( int client_socket, int cust_id ){
     to_transaction.custID = to_customer.acc_no;
     to_transaction.amount = transfer_amount;
     to_transaction.transactionType =4;
-
+    printf( "to transaction acc: %d\n", to_transaction.custID );
 
     apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(from_customer), sizeof(from_customer) * cust_id );
 
@@ -393,6 +398,78 @@ int addFeedback( int client_socket, int cust_id ){
 }
 
 int viewTransaction( int client_socket, int cust_id ){
+    char read_buffer[1000], write_buffer[1000], buffer[100];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    strcpy( write_buffer, "Your last 10 transactions are:\n\n" );
+
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDONLY );
+    int transaction_list_fd = open( "./dataBaseFiles/transaction/transaction.txt", O_RDWR );
+
+    struct Customer customer;
+    apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) * cust_id );
+
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    read( cust_list_fd, &customer, sizeof(customer) );
+
+    release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) * cust_id );
+    
+    int start = customer.tp;
+    struct Transaction transaction;
+    for( int i = 1; i <= 10; i++ ){
+        int ci = ( start - i + 10 ) % 10;
+
+        if( customer.transaction[ci] == -1 ) break;
+
+        // apply_file_lock( transaction_list_fd, LOCK_SHARED, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
+
+        lseek( transaction_list_fd, sizeof(transaction) * customer.transaction[ci], SEEK_SET );
+        read( transaction_list_fd, &transaction, sizeof(transaction) );
+
+        // release_file_lock( transaction_list_fd, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
+        
+        char trtype[14];
+        if( transaction.transactionType == 1 ){
+            strcpy( trtype, "DEPOSIT");
+        }
+        else if ( transaction.transactionType == 2 )
+        {
+            strcpy( trtype, "WITHDRAW");
+        }
+        else if ( transaction.transactionType == 3 )
+        {
+            strcpy( trtype, "TRANSFER(SEN)");
+        }
+        else if ( transaction.transactionType == 4 )
+        {
+            strcpy( trtype, "TRANSFER(REC)");
+        }
+        else if ( transaction.transactionType == 5 )
+        {
+            strcpy( trtype, "LOAN REC");
+        }
+        
+
+        char timestr[25];
+        struct tm *localTime = localtime(&transaction.transactionTime);
+        strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localTime);
+        // sprintf( buffer, "tID: %d | %s | amount: %.2f | time: %s\n", transaction.tID, trtype, transaction.amount, timestr );
+        snprintf(buffer, sizeof(buffer), "tID: %d | %s | amount: %.2f | time: %s\n", transaction.tID, trtype, transaction.amount, timestr);
+        printf("%s",buffer);
+
+        strcat( write_buffer, buffer );
+    }
+
+    write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    close( cust_list_fd );
+    close( transaction_list_fd );
+    
     return 0;
 }
 

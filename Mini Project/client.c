@@ -10,6 +10,9 @@
 #define MAX_MESSAGE_SIZE 256
 
 struct User{
+    int id;
+    int access_lvl;
+    
     char username[50];
     char password[50];
 };
@@ -48,7 +51,17 @@ int main(){
 
 
     // ******************* LOGIN HERE *******************
+    char init_read[1000];
     struct User user;
+    user.id = -1;
+
+    recv( client_socket, init_read, sizeof(init_read), 0 );
+    printf( "%s", init_read );
+
+    int login_type = -1;
+    scanf( "%d", &login_type );
+    user.access_lvl = login_type;
+
     printf("Enter Username: \n");
     scanf("%s", user.username);
     printf("Enter Password: \n");

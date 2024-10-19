@@ -15,13 +15,14 @@
 
 #include "../structures/users.h"
 #include "../structures/loan.h"
+#include "../structures/transaction.h"
 #include "./commonFunc.h"
 #include "./const.h"
 
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE_SIZE 256
 
-int handle_employee( int client_socket, struct User *employee );
+int handle_employee( int client_socket, struct User *employee, int emp_id );
 int addCustomer( int client_socket );
 int modifyCustomer( int client_socket );
 int processLoanApplication( int client_socket, int empId );
@@ -143,6 +144,7 @@ int processLoanApplication( int client_socket, int empId ){
 
     apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) * empId );
 
+    lseek( emp_list_fd, sizeof(emp) * empId, SEEK_SET );
     read( emp_list_fd, &emp, sizeof(emp) );
 
     release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * empId );
@@ -156,6 +158,7 @@ int processLoanApplication( int client_socket, int empId ){
     write_bytes = send( client_socket, ASK_LOAN_APPR, strlen(ASK_LOAN_APPR), 0 );
     memset(write_buffer, 0, sizeof(write_buffer));
     
+    memset(read_buffer, 0, sizeof(read_buffer));
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int loan_status = atoi( read_buffer );
     
@@ -185,6 +188,16 @@ int processLoanApplication( int client_socket, int empId ){
     customer.loanID = -1;
     if( loan_status == 1 ){
         customer.balance += loan_details.amount;
+
+        struct Transaction transaction;
+        transaction.tID = -1;
+        transaction.custID = loan_details.custId;
+        transaction.amount = loan_details.amount;
+        transaction.transactionType = 5;
+        transaction.transactionTime = time(NULL);
+
+        addTransaction( &transaction );
+        addTransactionToCustomer( &customer, &transaction );
     }
 
     lseek( cust_list_fd, sizeof(customer) * loan_details.custId, SEEK_SET );
@@ -193,7 +206,8 @@ int processLoanApplication( int client_socket, int empId ){
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) * loan_details.custId );
 
     for( int i = 0; i < 15; i++ ){
-        if( emp.loanAssigned[i] = loan_id ){
+        if( emp.loanAssigned[i] == loan_id ){
+            printf("found\n");
             emp.loanAssigned[i] = -1;
 
             apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) * empId );
@@ -227,6 +241,7 @@ int viewAssignedLoans( int client_socket, int empId ){
 
     apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) * empId );
 
+    lseek( emp_list_fd, sizeof(emp) * empId, SEEK_SET );
     read( emp_list_fd, &emp, sizeof(emp) );
 
     release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * empId );
@@ -247,7 +262,7 @@ int viewAssignedLoans( int client_socket, int empId ){
 }
 
 
-int handle_employee( int client_socket, struct User *employee ){
+int handle_employee( int client_socket, struct User *employee, int emp_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
 
@@ -273,10 +288,10 @@ int handle_employee( int client_socket, struct User *employee ){
                 modifyCustomer( client_socket );
                 break;
             case 3 : // Process Loan Applications
-                // processLoanApplication( client_socket, empId );
+                processLoanApplication( client_socket, emp_id );
                 break;
             case 4 : // View Assigned Loan Applications
-                // viewAssignedLoans( client_socket, empId );
+                viewAssignedLoans( client_socket, emp_id );
                 break;
             case 5 : { // Change Password
 

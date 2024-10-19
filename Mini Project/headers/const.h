@@ -27,8 +27,8 @@
 3. Withdraw money\n\
 4. Transfer funds\n\
 5. Apply for Loan\n\
-6. View Transaction History\n\
-7. Add feedback\n\
+6. Add feedback\n\
+7. View Transaction History\n\
 8. Change password\n\
 9. Logout\n\
 "
@@ -47,12 +47,11 @@
 
 #define MANAGER_MENU \
     "MANAGER MENU\n\
-1. Activate customer account\n\
-2. Deactivate customer account\n\
-3. Assign loan application to employee\n\
-4. Review customer feedback\n\
-5. Change password\n\
-6. Logout\n\
+1. Activate/Deactivate customer account\n\
+2. Assign loan application to employee\n\
+3. Review customer feedback\n\
+4. Change password\n\
+5. Logout\n\
 "
 
 #define ADMINISTRATOR_MENU \

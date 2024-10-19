@@ -125,5 +125,95 @@ int addTransaction(  struct Transaction* transaction ){
     return 0;
 }
 
+int admin_login( int client_socket, struct User *user ){
+    int admin_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_RDONLY );
+
+    struct Admin admin;
+    int isValid = 0;
+
+    lseek( admin_list_fd, 0, SEEK_SET );
+    while ( read( admin_list_fd, &admin, sizeof(admin) ) > 0 ){
+        if( strcmp(user->username, admin.username) == 0 && strcmp(user->password, admin.password) == 0 ){
+            isValid = 1;
+            user->id = admin.id;
+
+            break;
+        }
+    }
+
+    if ( isValid ) {
+        printf("Login successful\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    } else {
+        printf("Invalid username or password\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    }
+    
+    close( admin_list_fd );
+
+    return isValid;
+}
+
+int employee_login( int client_socket, struct User *user, int emp_type ){
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDONLY );
+
+    struct Employee emp;
+    int isValid = 0;
+
+    lseek( emp_list_fd, 0, SEEK_SET );
+    while( read( emp_list_fd, &emp, sizeof(emp) ) > 0 ){
+        if( strcmp(user->username, emp.username) == 0 && strcmp(user->password, emp.password) == 0 ){
+            if( emp.role == emp_type ){
+                isValid = emp_type == 1 ? 2 : 3;
+                user->id = emp.id;
+
+                break;
+            }
+        }
+    }
+
+    if ( isValid ) {
+        printf("Login successful\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    } else {
+        printf("Invalid username or password\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    }
+    
+    close( emp_list_fd );
+
+    return isValid;
+}
+
+int customer_login( int client_socket, struct User *user ){
+    int cust_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_RDONLY );
+
+    struct Customer customer;
+    int isValid = 0;
+
+    lseek( cust_list_fd, 0, SEEK_SET );
+    while ( read( cust_list_fd, &customer, sizeof(customer) ) > 0 ){
+        printf( "%s, %s\n", customer.username, customer.password );
+        
+        if( strcmp(user->username, customer.username) == 0 && strcmp(user->password, customer.password) == 0 ){
+            isValid = 4;
+            user->id = customer.acc_no;
+
+            break;
+        }
+    }
+
+    if ( isValid ) {
+        printf("Login successful\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    } else {
+        printf("Invalid username or password\n");
+        send( client_socket, &isValid, sizeof(isValid), 0 );
+    }
+    
+    close( cust_list_fd );
+
+    return isValid;
+}
 
 #endif

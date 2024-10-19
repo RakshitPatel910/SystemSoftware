@@ -112,16 +112,19 @@ int assignLoanApplication( int client_socket ){
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
 
-    int loan_list_fd = open( "../dataBaseFiles/loan/loanList.txt", O_RDWR );
+    int loan_list_fd = open( "./dataBaseFiles/loan/loanList.txt", O_RDWR );
     int file_size = lseek( loan_list_fd, 0, SEEK_END );
 
     apply_file_lock( loan_list_fd, LOCK_SHARED, file_size, 0 );
 
     struct Loan loan_instance;
+    lseek( loan_list_fd, 0, SEEK_SET );
     while( read( loan_list_fd, &loan_instance, sizeof(loan_instance) ) > 0){
         if( loan_instance.loanStatus == 0 ){
             sprintf( buffer, "Loan ID: %d, Customer ID: %d, Amount: %f\n", loan_instance.loanId, loan_instance.custId, loan_instance.amount );
             strcat( write_buffer, buffer );
+
+            printf( "loan: %d, %s", loan_instance.loanId, buffer );
         }
     }
 
@@ -134,7 +137,7 @@ int assignLoanApplication( int client_socket ){
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int loan_id = atoi( read_buffer );
 
-    int emp_list_fd = open( "../dataBaseFiles/loan/employee.txt", O_RDWR );
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
     file_size = lseek( emp_list_fd, 0, SEEK_END );
 
     struct Employee emp;
@@ -143,15 +146,19 @@ int assignLoanApplication( int client_socket ){
         write_bytes = send( client_socket, write_buffer, strlen(write_buffer), 0 );
         memset(write_buffer, 0, sizeof(write_buffer));
 
+        memset(read_buffer, 0, sizeof(read_buffer));
         read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
         int emp_id = atoi( read_buffer );
 
-        apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) * emp_id );
 
+        apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) * emp_id );
+        
+        // printf("1e : %d\n", emp_id);
         lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
         read( emp_list_fd, &emp, sizeof(emp) );
 
         release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp_id );
+
 
         int isAvailable = 0;
         for( int i = 0; i < 15; i++ ){
@@ -159,12 +166,24 @@ int assignLoanApplication( int client_socket ){
                 emp.loanAssigned[i] = loan_id;
                 emp.totalLoanAssigned++;
                 
+
                 apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) * emp_id );
+                // printf("2e\n");
 
                 lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
                 write( emp_list_fd, &emp, sizeof(emp) );
 
                 release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp_id );
+
+
+                apply_file_lock( loan_list_fd, LOCK_SHARED, sizeof(loan_instance), sizeof(loan_instance) * loan_id );
+
+                loan_instance.loanStatus = 1;
+                lseek( loan_list_fd, sizeof(loan_instance) * loan_id, SEEK_SET );
+                write( loan_list_fd, &loan_instance, sizeof(loan_instance) );
+
+                release_file_lock( loan_list_fd, sizeof(loan_instance), sizeof(loan_instance) * loan_id );
+
 
                 isAvailable = 1;
                 break;
@@ -181,7 +200,6 @@ int assignLoanApplication( int client_socket ){
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
 
     return 0;
-
 }
 
 int reviewFeedback( int client_socket ){
@@ -191,12 +209,13 @@ int reviewFeedback( int client_socket ){
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
 
-    int feedback_list_fd = open( "../dataBaseFiles/feedback/feedback.txt", O_RDWR );
+    int feedback_list_fd = open( "./dataBaseFiles/feedback/feedback.txt", O_RDWR );
     int file_size = lseek( feedback_list_fd, 0, SEEK_END );
 
     apply_file_lock( feedback_list_fd, LOCK_SHARED, file_size, 0 );
 
     struct Feedback feedback_instance;
+    lseek( feedback_list_fd, 0, SEEK_SET );
     while( read( feedback_list_fd, &feedback_instance, sizeof(feedback_instance) ) > 0){
         if( feedback_instance.reviewStatus == 0 ){
             sprintf( buffer, "Feedback ID: %d, Customer ID: %d\nFeedback: %s\n\n", feedback_instance.feedbackId, feedback_instance.custId, feedback_instance.feedback );
