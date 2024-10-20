@@ -44,40 +44,8 @@ int handle_login( int client_socket, struct User *user, struct sembuf *sem_op, i
         isValid = customer_login( client_socket, user, sem_op, sem_id );
     }
     else{
-
+        isValid = -2;
     }
-    
-
-    // struct User user_info;
-    
-    // int tu;
-    // read( total_user_fd, &tu, sizeof(tu) );
-
-    // lseek( users_file_fd, 0 , SEEK_SET );
-    // // printf("%d\n",l);
-    // printf( "%s\n", user->username );
-    // printf( "%s\n", user->password );
-    // while( read( users_file_fd, &user_info, sizeof(user_info) ) > 0 ){
-        
-    //     printf( "%s\n", user_info.username );
-    //     printf( "%s\n", user_info.password );
-
-    //     if( strcmp(user->username, user_info.username) == 0 && strcmp(user->password, user_info.password) == 0){
-    //         isValid = 1;
-    //         break;
-    //     }
-    // }
-
-    // if ( isValid ) {
-    //     printf("Login successful\n");
-    //     send( client_socket, &isValid, sizeof(isValid), 0 );
-    // } else {
-    //     printf("Invalid username or password\n");
-    //     send( client_socket, &isValid, sizeof(isValid), 0 );
-    // }
-
-    // close( users_file_fd );
-    // close( total_user_fd );
 
     return isValid;
 }
@@ -87,6 +55,59 @@ int main(){
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_length = sizeof(client_addr);
     sem_t semaphore;
+
+
+    int admin_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_CREAT | O_RDWR, 0644 );
+    int file_size = lseek( admin_list_fd, 0, SEEK_END );
+    if( file_size == 0 ){
+        struct Admin admin = { 0, "admin0", "admin0" };
+
+        lseek( admin_list_fd, 0, SEEK_END );
+        write( admin_list_fd, &admin, sizeof(admin) );
+    }
+    close( admin_list_fd );
+
+
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_CREAT | O_RDWR, 0644 );
+    int total_emp_fd = open( "./dataBaseFiles/employee/totalEmp.txt", O_CREAT | O_RDWR, 0644 );
+    file_size = lseek( emp_list_fd, 0, SEEK_END );
+    if( file_size == 0 ){
+        int initval = 0;
+
+        lseek( total_emp_fd, 0, SEEK_END );
+        write( total_emp_fd, &initval, sizeof(initval) );
+    }
+    close( emp_list_fd );
+    close( total_emp_fd );
+
+
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_CREAT | O_RDWR, 0644 );
+    int total_cust_fd = open( "./dataBaseFiles/customer/totalCust.txt", O_CREAT | O_RDWR, 0644 );
+    file_size = lseek( cust_list_fd, 0, SEEK_END );
+    if( file_size == 0 ){
+        int initval = 0;
+
+        lseek( total_cust_fd, 0, SEEK_END );
+        write( total_cust_fd, &initval, sizeof(initval) );
+    }
+    close( cust_list_fd );
+    close( total_cust_fd );
+
+
+    int feedback_list_fd = open( "./dataBaseFiles/feedback/feedback.txt", O_CREAT | O_RDWR, 0644 );
+    file_size = lseek( feedback_list_fd, 0, SEEK_END );
+    close( feedback_list_fd );
+
+
+    int loan_list_fd = open( "./dataBaseFiles/loan/loan.txt", O_CREAT | O_RDWR, 0644 );
+    file_size = lseek( loan_list_fd, 0, SEEK_END );
+    close( loan_list_fd );
+
+
+    int transaction_list_fd = open( "./dataBaseFiles/transaction/transaction.txt", O_CREAT | O_RDWR, 0644 );
+    file_size = lseek( transaction_list_fd, 0, SEEK_END );
+    close( transaction_list_fd );
+
 
     // Create semaphore
     sem_init(&semaphore, 0, MAX_CLIENTS);
@@ -165,6 +186,8 @@ int main(){
                         case 4:
                             logout =  handle_customer(client_socket, &user, user.id);
                             break;
+                        case -2:
+                            return 0;
                         default:
                             // exit_handler(client_socket);
                             break;
@@ -187,46 +210,6 @@ int main(){
 
 
             }
-
-            // struct User user;
-            // send( client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0 );
-            // recv( client_socket, &user, sizeof(user), 0 );
-
-            // int isValid = handle_login( client_socket, &user );
-
-            // if( isValid ){
-
-            //     printf("Client is connected to the server\n");
-
-            //     char read_buffer[1000], write_buffer[1000];
-            //     int read_bytes, write_bytes;
-            //     int choice;
-
-            //     switch ( isValid ) {
-            //         case 1:
-            //             handle_admin(client_socket, &user);
-            //             break;
-            //         case 2:
-            //             handle_manager(client_socket, &user);
-            //             break;
-            //         case 3:
-            //             handle_employee(client_socket, &user, user.id);
-            //             break;
-            //         case 4:
-            //             handle_customer(client_socket, &user, user.id);
-            //             break;
-            //         default:
-            //             // exit_handler(client_socket);
-            //             break;
-            //     }
-            // sleep(3);
-                
-            // }
-            // else{
-
-            // }
-            // close( client_socket );
-            // _exit(0);
             
         }
         else{

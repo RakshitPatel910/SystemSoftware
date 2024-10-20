@@ -61,6 +61,8 @@ int main(){
         int login_type = -1;
         scanf( "%d", &login_type );
         user.access_lvl = login_type;
+        
+        if( login_type == 5 ) return 0;
 
         printf("Enter Username: \n");
         scanf("%s", user.username);
@@ -89,7 +91,7 @@ int main(){
             memset(write_buffer, 0, sizeof(write_buffer));
 
             read_bytes = recv(client_socket, read_buffer, sizeof(read_buffer), 0);
-            printf( "%d\n", read_bytes );
+            // printf( "%d\n", read_bytes );
             if (read_bytes == -1) {
                 perror("Read from client socket\n");
                 return 0;
@@ -99,7 +101,7 @@ int main(){
                 return 0;
             }
             if ( strstr(read_buffer, "#*#logout#*#") != NULL ){
-                printf("rby: %d, logout\n", read_bytes );
+                // printf("rby: %d, logout\n", read_bytes );
                 break;
             }
             if (strchr(read_buffer, '$') != NULL) {
@@ -122,7 +124,7 @@ int main(){
             // printf("%s\n", write_buffer);
             write_bytes = send(client_socket, write_buffer, sizeof(write_buffer), 0);
             // printf("%s\n", write_buffer);
-            printf("%d\n", write_bytes);
+            // printf("%d\n", write_bytes);
             // printf("e\n");
             if (write_bytes == -1) {
                 perror("Write to client socket\n");

@@ -21,14 +21,22 @@ int main(){
     // int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
     int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDONLY );
 
-    lseek( cust_list_fd, 0, SEEK_SET );
+    lseek( cust_list_fd, sizeof(c)*0, SEEK_SET );
     read( cust_list_fd, &c, sizeof(c) );
 
     for( int i = 0; i < 15; i++ ){
         printf( "%d, ", c.transaction[i] );
     }
     printf("\n");
-    
+
+    for( int i = 0; i < 15; i++ ){
+        if( c.transaction[(( c.tp - i + 15 ) % 15)] != -1 ) printf( "%d, %d\n", c.transaction[(( c.tp - i + 15 ) % 15)], i );
+    }
+    printf("\n");
+
+
+    printf("tp: %d\n", c.tp );
+
     int transaction_list_fd = open( "./dataBaseFiles/transaction/transaction.txt", O_RDWR );
     char buffer[1000];
 

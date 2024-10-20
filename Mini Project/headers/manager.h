@@ -169,6 +169,12 @@ int assignLoanApplication( int client_socket ){
 
         release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp_id );
 
+        if( emp.role == 1 ){
+            strcpy( write_buffer, "Cant assign to a Manager\n" );
+            strcat( write_buffer, ASK_EMP_ID );
+
+            continue;
+        }
 
         int isAvailable = 0;
         for( int i = 0; i < 15; i++ ){

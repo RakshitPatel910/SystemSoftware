@@ -39,6 +39,10 @@ struct Employee {
 
     int totalLoanAssigned;
     int loanAssigned[15];
+
+    char name[40];
+    char gender;
+    int age;
 };
 
 struct Admin{

@@ -12,7 +12,9 @@
 2. Manager\n\
 3. Employee\n\
 4. Customer\n\
-5. Exit\n"
+5. Exit\n\n\
+Enter your choice: \
+"
 
 #define EMPLOYEE_LOGIN_PAGE "Welcome Employee! Enter your details to log in\n"
 #define CUSTOMER_LOGIN_PAGE "Welcome Customer! Enter your details to log in\n"
@@ -21,7 +23,7 @@
     "Welcome Administrator! Enter your details to log in\n"
 
 #define CUSTOMER_MENU \
-    "CUSTOMER MENU\n\
+    "-----------------CUSTOMER MENU-----------------\n\
 1. View account balance\n\
 2. Deposit money\n\
 3. Withdraw money\n\
@@ -30,49 +32,55 @@
 6. Add feedback\n\
 7. View Transaction History\n\
 8. Change password\n\
-9. Logout\n\
+9. Logout\n\n\
+Enter your choice: \
 "
 
 #define EMPLOYEE_MENU \
-    "EMPLOYEE MENU\n\
+    "-----------------EMPLOYEE MENU-----------------\n\
 1. Add new customer\n\
 2. Modify customer details\n\
 3. Process loan application\n\
 4. View Assigned Loan\n\
 5. Change password\n\
-6. Logout\n\
+6. Logout\n\n\
+Enter your choice: \
 "
 
 #define MANAGER_MENU \
-    "MANAGER MENU\n\
+    "-----------------MANAGER MENU-----------------\n\
 1. Activate/Deactivate customer account\n\
 2. Assign loan application to employee\n\
 3. Review customer feedback\n\
 4. Change password\n\
-5. Logout\n\
+5. Logout\n\n\
+Enter your choice: \
 "
 
 #define ADMINISTRATOR_MENU \
-    "ADMINISTRATOR MENU\n\
+    "-----------------ADMINISTRATOR MENU-----------------\n\
 1. Add new bank employee\n\
-2. Modify customer details\n\
-3. Modify employee details\n\
+2. Modify customer/employee details\n\
+3. Manage employee role\n\
 4. Change password\n\
-5. Logout\n\
+5. Logout\n\n\
+Enter your choice: \
 "
 
-#define USERNAME "Enter your username:"
-#define PASSWORD "Enter your password:"
-#define ROLE "Enter role:"
-#define NEW_PASSWORD "Enter new password:"
+#define USERNAME "Enter your username: "
+#define PASSWORD "Enter your password: "
+#define ROLE "Enter role: "
+#define NEW_PASSWORD "Enter new password: "
 
 #define SUCCESS "Operation was successfull"
 
-#define ASK_NAME "Enter name:"
-#define ASK_GENDER "Enter gender:\nM: Male\nF: Female\nO: Others"
-#define ASK_AGE "Enter age:"
-#define ASK_PASSWORD "Enter password:"
-#define ASK_BALANCE "Enter Balance:"
+#define ASK_NAME "Enter name: "
+#define ASK_GENDER "Enter gender:\nM: Male\nF: Female\nO: Others\n: "
+#define ASK_AGE "Enter age :"
+#define ASK_PASSWORD "Enter password: "
+#define ASK_BALANCE "Enter Balance: "
+
+#define CUST_OR_EMP "Do you want to modify:\n1.Customer\n2.Employee\nEnter your choice: "
 
 #define ASK_CUST_ACCNO "Enter Customer account number:\n"
 #define ASK_CUST_UNAME "Enter Customer username:\n"
@@ -101,15 +109,10 @@
 #define INVALID_PASSWORD "You entered wrong password"
 #define INVALID_ENTRY "Your input is invalid. Please select from given options"
 
-#define CUSTOMER_FILE "./Records/customer.txt"
-#define EMPLOYEE_FILE "./Records/employee.txt"
-#define TRANSACTION_FILE "./Records/transaction.txt"
-
 #define TO_PROCEED "Press any key to proceed (Enter to logout)"
-#define LOGOUT "Logging off! Have a nice day.$"
 #define EXIT "Exiting from the server.$"
 
-#define ALREADY_APPLIED " You have already applied for loan"
+#define ALREADY_APPLIED " You have already applied for loan\n"
 #define ASK_LOAN_AMOUNT "Enter the amount of loan to apply: \n"
 #define LOAN_APPL_SUCCESS "Loan applied successfully.\n"
 #define ASK_LOAN_ID "Enter the loan id: \n"

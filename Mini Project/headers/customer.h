@@ -452,18 +452,18 @@ int viewTransaction( int client_socket, int cust_id ){
 
         // apply_file_lock( transaction_list_fd, LOCK_SHARED, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
 
-        lseek( transaction_list_fd, sizeof(transaction) * customer.transaction[ci - 1], SEEK_SET );
+        lseek( transaction_list_fd, sizeof(transaction) * (customer.transaction[ci] - 1), SEEK_SET );
         read( transaction_list_fd, &transaction, sizeof(transaction) );
 
         // release_file_lock( transaction_list_fd, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
         
         char trtype[14];
         if( transaction.transactionType == 1 ){
-            strcpy( trtype, "DEPOSIT");
+            strcpy( trtype, "DEPOSIT      ");
         }
         else if ( transaction.transactionType == 2 )
         {
-            strcpy( trtype, "WITHDRAW");
+            strcpy( trtype, "WITHDRAW     ");
         }
         else if ( transaction.transactionType == 3 )
         {
@@ -475,7 +475,7 @@ int viewTransaction( int client_socket, int cust_id ){
         }
         else if ( transaction.transactionType == 5 )
         {
-            strcpy( trtype, "LOAN REC");
+            strcpy( trtype, "LOAN REC     ");
         }
         
 

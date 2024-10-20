@@ -233,7 +233,7 @@ int modifyCustomer( int client_socket ){
         customer.gender = read_buffer[0];
         memset(read_buffer, 0, sizeof(read_buffer));
     
-        if( customer.gender == 'M' || customer.gender == 'F' ){
+        if( customer.gender == 'M' || customer.gender == 'F' || customer.gender == 'O' ){
             break;
         }
         else{
@@ -252,6 +252,7 @@ int modifyCustomer( int client_socket ){
 
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
 
+    close( cust_list_fd );
 
     return 0;
 };

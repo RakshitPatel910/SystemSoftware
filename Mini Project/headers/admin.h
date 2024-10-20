@@ -38,16 +38,55 @@ int addEmployee( int client_socket ){
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
 
-    write_bytes = send(client_socket, USERNAME, strlen(USERNAME), 0);
-    read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
-    // printf("%s ", read_buffer);
-    // read_bytes = recv(client_socket, &emp.username, sizeof(emp.username), 0);
-    // read_bytes = recv(client_socket, &emp.username, 15, 0);
-    strcpy(emp.username, read_buffer);
-    printf("uname %s, %d\n", emp.username, read_bytes);
+    send( client_socket, ASK_NAME, strlen(ASK_NAME), 0 );
 
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    strcpy( emp.name, read_buffer );
     memset(read_buffer, 0, sizeof(read_buffer));
-    // memset(write_buffer, 0, sizeof(write_buffer));
+
+    send( client_socket, ASK_AGE, strlen(ASK_AGE), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        emp.age = atoi(read_buffer);
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( emp.age > 0 && emp.age < 150){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid age\n" );
+            strcat( write_buffer, ASK_AGE );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
+    send( client_socket, ASK_GENDER, strlen(ASK_GENDER), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        // strcpy( customer.gender, read_buffer );
+        emp.gender = read_buffer[0];
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( emp.gender == 'M' || emp.gender == 'F' || emp.gender == 'O' ){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid gender\n" );
+            strcat( write_buffer, ASK_GENDER );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
+
+    write_bytes = send(client_socket, USERNAME, strlen(USERNAME), 0);
+
+    read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
+    strcpy(emp.username, read_buffer);
+    memset(read_buffer, 0, sizeof(read_buffer));
 
     write_bytes = send(client_socket, ROLE, strlen(ROLE), 0);
     read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
@@ -56,26 +95,22 @@ int addEmployee( int client_socket ){
 
 
     write_bytes = send(client_socket, PASSWORD, strlen(PASSWORD), 0);
+
     read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
-    // printf("%s ", read_buffer);
-    // read_bytes = recv(client_socket, &emp.password, sizeof(emp.password), 0);
-    // read_bytes = recv(client_socket, &emp.password, 15, 0);
     strcpy(emp.password, read_buffer);
-    printf("pass %s, %d\n", emp.password, read_bytes);
-
-
-
-    // recv( client_socket, &emp, sizeof(emp), 0 );
-    printf( "%d, %s, %s\n", emp.id, emp.username, emp.password );
 
     int total_emp_fd = open( "./dataBaseFiles/employee/totalEmp.txt", O_RDWR );
     int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
 
-    printf( "%d, %d\n", total_emp_fd, emp_list_fd );
     int total_emp = 0;
+    lseek( total_emp_fd, 0, SEEK_SET );
+
+
+    apply_file_lock( total_emp_fd, LOCK_SHARED, sizeof(total_emp), 0 );
     if( read( total_emp_fd, &total_emp, sizeof(total_emp) ) <= 0 ){
-        printf("no entries\n");
-        printf("%d\n", total_emp);
+        release_file_lock( total_emp_fd, sizeof(total_emp), 0 );
+
+
         total_emp = 0;
 
         emp.id = total_emp;
@@ -83,28 +118,48 @@ int addEmployee( int client_socket ){
             emp.loanAssigned[i] = -1;
         }
 
-        printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
+
+        apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) * emp.id );
+
         lseek( emp_list_fd, 0, SEEK_SET );
         write( emp_list_fd, &emp, sizeof(emp) );
 
+        release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp.id );
+
+
+        apply_file_lock( total_emp_fd, LOCK_EXCLUSIVE, sizeof(total_emp), 0 );
+        
         total_emp++;
         lseek( total_emp_fd, 0, SEEK_SET );
         write( total_emp_fd, &total_emp, sizeof(total_emp) );
+
+        release_file_lock( total_emp_fd, sizeof(total_emp), 0 );
     }
     else{
-        printf("%d\n", total_emp);
+        release_file_lock( total_emp_fd, sizeof(total_emp), 0 );
+
+
         emp.id = total_emp;
         for( int i = 0; i < 15; i++ ){
             emp.loanAssigned[i] = -1;
         }
 
-        printf( "%d, %d, %s, %s", emp.id, emp.role, emp.username, emp.password );
+
+        apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) * emp.id );
+
         lseek( emp_list_fd, sizeof(emp) * total_emp, SEEK_SET );
         write( emp_list_fd, &emp, sizeof(emp) );
+
+        release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) * emp.id );
+
     
+        apply_file_lock( total_emp_fd, LOCK_EXCLUSIVE, sizeof(total_emp), 0 );
+
         total_emp++;
         lseek( total_emp_fd, 0, SEEK_SET );
         write( total_emp_fd, &total_emp, sizeof(total_emp) );
+
+        release_file_lock( total_emp_fd, sizeof(total_emp), 0 );
     }
 
     close( total_emp_fd );
@@ -114,73 +169,188 @@ int addEmployee( int client_socket ){
 }
 
 int modifyCustEmp( int client_socket ){
+    int read_bytes, write_bytes;
+    char read_buffer[1000], write_buffer[1000];
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    send( client_socket, CUST_OR_EMP, strlen(CUST_OR_EMP), 0 );
+
     int choice;
-    recv(client_socket, &choice, sizeof(choice), 0);
+    recv(client_socket, read_buffer, sizeof(read_buffer), 0);
+    choice = atoi(read_buffer);
     printf("choice val %d\n", choice);
 
     if (choice == 1) { // Modify Customer Details
-        // int customer_id;
-        // recv(client_socket, &customer_id, sizeof(customer_id), 0);
+        struct Customer customer;
+        send( client_socket, ASK_CUST_ACCNO, strlen(ASK_CUST_ACCNO), 0 );
+        
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        int cust_id = atoi(read_buffer);
+        memset(read_buffer, 0, sizeof(read_buffer));
 
-        // int customer_fd = open("./dataBaseFiles/customer/customer.txt", O_RDWR);
-        // struct User customer;
-        // lseek(customer_fd, sizeof(customer) * customer_id, SEEK_SET);
-        // read(customer_fd, &customer, sizeof(customer));
+        
+        int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
 
-        // printf("%d, %s, %s, %f\n", customer.id, customer.username, customer.password, customer.balance);
 
-        // char new_username[50];
-        // char new_password[50];
-        // float new_balance;
-        // recv(client_socket, new_username, sizeof(new_username), 0);
-        // recv(client_socket, new_password, sizeof(new_password), 0);
-        // recv(client_socket, &new_balance, sizeof(new_balance), 0);
+        apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) *cust_id );
 
-        // strcpy(customer.username, new_username);
-        // strcpy(customer.password, new_password);
-        // customer.balance = new_balance;
+        lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+        read( cust_list_fd, &customer, sizeof(customer) );
 
-        // lseek(customer_fd, sizeof(customer) * customer_id, SEEK_SET);
-        // write(customer_fd, &customer, sizeof(customer));
+        release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
 
-        // close(customer_fd);
 
-        // send(client_socket, "Customer details modified successfully", MAX_MESSAGE_SIZE, 0);
-    } else if (choice == 2) { // Modify Employee Details
-        int employee_id;
-        recv(client_socket, &employee_id, sizeof(employee_id), 0);
+        sprintf( write_buffer, "Acc. No: %d\nName: %s\nAge: %d\nGender: %c\n\n", customer.acc_no, customer.name, customer.age, customer.gender );
+        strcat( write_buffer, ASK_NAME );
 
-        int employee_fd = open("./dataBaseFiles/employee/employee.txt", O_RDWR);
-        struct Employee employee;
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+        // send( client_socket, ASK_NAME, strlen(ASK_NAME), 0 );
 
-        printf( "size %ld\n", sizeof(employee) * employee_id );
-        printf( "emp_id %d\n", employee_id );
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        strcpy( customer.name, read_buffer );
+        memset(read_buffer, 0, sizeof(read_buffer));
 
-        lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-        read(employee_fd, &employee, sizeof(employee));
+        send( client_socket, ASK_AGE, strlen(ASK_AGE), 0 );
+        while( 1 ){
+            // memset(read_buffer, 0, sizeof(read_buffer));
+            recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+            customer.age = atoi(read_buffer);
+            memset(read_buffer, 0, sizeof(read_buffer));
+        
+            if( customer.age > 0 && customer.age < 150){
+                break;
+            }
+            else{
+                strcpy( write_buffer, "Enter valid age\n" );
+                strcat( write_buffer, ASK_AGE );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+            }
+        }
 
-        printf("%d, %s, %s\n", employee.id, employee.username, employee.password);
+        send( client_socket, ASK_GENDER, strlen(ASK_GENDER), 0 );
+        while( 1 ){
+            // memset(read_buffer, 0, sizeof(read_buffer));
+            recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+            // strcpy( customer.gender, read_buffer );
+            customer.gender = read_buffer[0];
+            memset(read_buffer, 0, sizeof(read_buffer));
+        
+            if( customer.gender == 'M' || customer.gender == 'F' || customer.gender == 'O' ){
+                break;
+            }
+            else{
+                strcpy( write_buffer, "Enter valid gender\n" );
+                strcat( write_buffer, ASK_GENDER );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+            }
+        }
 
-        char new_username[15];
-        char new_password[15];
-        // recv(client_socket, new_username, sizeof(new_username), 0);
-        // recv(client_socket, new_password, sizeof(new_password), 0);
-        recv( client_socket, &employee, sizeof(employee), 0 );
 
-        // strcpy(employee.username, new_username);
-        // strcpy(employee.password, new_password);
-        printf("new emp %d, %s, %s\n", employee.id, employee.username, employee.password);
+        apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) *cust_id );
 
-        lseek(employee_fd, sizeof(employee) * employee_id, SEEK_SET);
-        write(employee_fd, &employee, sizeof(employee));
+        lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+        write( cust_list_fd, &customer, sizeof(customer) );
 
-        close(employee_fd);
+        release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
 
-        send(client_socket, "Employee details modified successfully", MAX_MESSAGE_SIZE, 0);
-    } else {
+        close( cust_list_fd );
+        
+        strcpy( write_buffer, "Changed Successfully\n");
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+
+    } 
+    else if (choice == 2) { // Modify Employee Details
+        struct Employee emp;
+        send( client_socket, ASK_CUST_ACCNO, strlen(ASK_CUST_ACCNO), 0 );
+        
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        int emp_id = atoi(read_buffer);
+        memset(read_buffer, 0, sizeof(read_buffer));
+
+        
+        int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
+
+
+        apply_file_lock( emp_list_fd, LOCK_SHARED, sizeof(emp), sizeof(emp) *emp_id );
+
+        lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
+        read( emp_list_fd, &emp, sizeof(emp) );
+
+        release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) *emp_id );
+
+
+        sprintf( write_buffer, "Acc. No: %d\nName: %s\nAge: %d\nGender: %c\n\n", emp.id, emp.name, emp.age, emp.gender );
+        strcat( write_buffer, ASK_NAME );
+
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+        // send( client_socket, ASK_NAME, strlen(ASK_NAME), 0 );
+
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        strcpy( emp.name, read_buffer );
+        memset(read_buffer, 0, sizeof(read_buffer));
+
+        send( client_socket, ASK_AGE, strlen(ASK_AGE), 0 );
+        while( 1 ){
+            // memset(read_buffer, 0, sizeof(read_buffer));
+            recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+            emp.age = atoi(read_buffer);
+            memset(read_buffer, 0, sizeof(read_buffer));
+        
+            if( emp.age > 0 && emp.age < 150){
+                break;
+            }
+            else{
+                strcpy( write_buffer, "Enter valid age\n" );
+                strcat( write_buffer, ASK_AGE );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+            }
+        }
+
+        send( client_socket, ASK_GENDER, strlen(ASK_GENDER), 0 );
+        while( 1 ){
+            // memset(read_buffer, 0, sizeof(read_buffer));
+            recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+            // strcpy( customer.gender, read_buffer );
+            emp.gender = read_buffer[0];
+            memset(read_buffer, 0, sizeof(read_buffer));
+        
+            if( emp.gender == 'M' || emp.gender == 'F' || emp.gender == 'O' ){
+                break;
+            }
+            else{
+                strcpy( write_buffer, "Enter valid gender\n" );
+                strcat( write_buffer, ASK_GENDER );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+            }
+        }
+
+
+        apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(emp), sizeof(emp) *emp_id );
+
+        lseek( emp_list_fd, sizeof(emp) * emp_id, SEEK_SET );
+        write( emp_list_fd, &emp, sizeof(emp) );
+
+        release_file_lock( emp_list_fd, sizeof(emp), sizeof(emp) *emp_id );
+
+        close( emp_list_fd );
+
+        strcpy( write_buffer, "Changed Successfully\n");
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+
+    } 
+    else {
         send(client_socket, "Invalid choice", MAX_MESSAGE_SIZE, 0);
     }
             
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    return 0;
 }
 
 int manage_user_role( int client_socket ){
