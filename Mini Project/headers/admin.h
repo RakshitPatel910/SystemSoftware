@@ -494,11 +494,15 @@ bool handle_admin( int client_socket, struct User *admin ){
                 memset(write_buffer, 0, sizeof(write_buffer));
                 return true;
             
-            case 6 : { // Exit
+            case 6 :  // Exit
+                strcpy( write_buffer, "#*#exit#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
 
-            }
             default :
                 send(client_socket, "Invalid choice", MAX_MESSAGE_SIZE, 0);
+                return true;
                 break;
             
         }

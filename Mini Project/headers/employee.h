@@ -472,11 +472,15 @@ bool handle_employee( int client_socket, struct User *employee, int emp_id ){
                 memset(write_buffer, 0, sizeof(write_buffer));
                 return true;
             
-            case 7 : { // Exit
-
-            }
+            case 7 :  // Exit
+                strcpy( write_buffer, "#*#exit#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
+            
             default :
                 send(client_socket, "Invalid choice", MAX_MESSAGE_SIZE, 0);
+                return true;
                 break;
             
         }

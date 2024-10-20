@@ -61,7 +61,7 @@ int main(){
         int login_type = -1;
         scanf( "%d", &login_type );
         user.access_lvl = login_type;
-        
+
         if( login_type == 5 ) return 0;
 
         printf("Enter Username: \n");
@@ -103,6 +103,10 @@ int main(){
             if ( strstr(read_buffer, "#*#logout#*#") != NULL ){
                 // printf("rby: %d, logout\n", read_bytes );
                 break;
+            }
+            if ( strstr(read_buffer, "#*#exit#*#") != NULL ){
+                // printf("rby: %d, logout\n", read_bytes );
+                return 0;
             }
             if (strchr(read_buffer, '$') != NULL) {
                 strncpy(buffer, read_buffer, sizeof(read_buffer) - 2);

@@ -595,10 +595,14 @@ bool handle_customer( int client_socket, struct User* user, int cust_id ){
                 return true;
             
             case 10 :  // Exit
-
+                strcpy( write_buffer, "#*#exit#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
             
             default :
                 send(client_socket, "Invalid choice", sizeof(write_buffer), 0);
+                return true;
                 break;
             
         }

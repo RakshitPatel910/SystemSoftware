@@ -32,7 +32,8 @@ Enter your choice: \
 6. Add feedback\n\
 7. View Transaction History\n\
 8. Change password\n\
-9. Logout\n\n\
+9. Logout\n\
+10. Exit\n\n\
 Enter your choice: \
 "
 
@@ -43,7 +44,8 @@ Enter your choice: \
 3. Process loan application\n\
 4. View Assigned Loan\n\
 5. Change password\n\
-6. Logout\n\n\
+6. Logout\n\
+7. Exit\n\n\
 Enter your choice: \
 "
 
@@ -53,7 +55,8 @@ Enter your choice: \
 2. Assign loan application to employee\n\
 3. Review customer feedback\n\
 4. Change password\n\
-5. Logout\n\n\
+5. Logout\n\
+6. Exit\n\n\
 Enter your choice: \
 "
 
@@ -63,7 +66,8 @@ Enter your choice: \
 2. Modify customer/employee details\n\
 3. Manage employee role\n\
 4. Change password\n\
-5. Logout\n\n\
+5. Logout\n\
+6. Exit\n\n\
 Enter your choice: \
 "
 
