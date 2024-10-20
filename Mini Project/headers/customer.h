@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "../structures/users.h"
 #include "../structures/loan.h"
@@ -20,7 +21,7 @@
 #include "./commonFunc.h"
 #include "./const.h"
 
-int handle_customer( int client_socket, struct User* user, int cust_id );
+bool handle_customer( int client_socket, struct User* user, int cust_id );
 int viewBalance( int client_socket, int cust_id );
 int depositMoney( int client_socket, int cust_id );
 int withdrawMoney( int client_socket, int cust_id );
@@ -28,6 +29,7 @@ int transferMoney( int client_socket, int cust_id );
 int loanApplication( int client_socket, int cust_id );
 int addFeedback( int client_socket, int cust_id );
 int viewTransaction( int client_socket, int cust_id );
+int changePasswordCustomer( int client_socket, int cust_id );
 
 int viewBalance( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
@@ -186,6 +188,7 @@ int transferMoney( int client_socket, int cust_id ){
 
 
     struct Customer from_customer, to_customer;
+    int cust_file_size = lseek( cust_list_fd, 0, SEEK_END );
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(from_customer), sizeof(from_customer) *cust_id );
 
     lseek( cust_list_fd, sizeof(from_customer) * cust_id, SEEK_SET );
@@ -198,6 +201,28 @@ int transferMoney( int client_socket, int cust_id ){
     
     read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
     int to_cust_id = atoi( read_buffer );
+
+    if( to_cust_id == cust_id ){
+        strcpy( write_buffer,"You cannnot enter your own account.\n" );
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+        memset(write_buffer, 0, sizeof(write_buffer));
+
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        memset(read_buffer, 0, sizeof(read_buffer));
+
+        return 0;
+    }
+
+    if( to_cust_id >= (cust_file_size / sizeof(from_customer)) ){
+        strcpy( write_buffer,"Customer with enterd Acc. no. does not exist.\n" );
+        send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+        memset(write_buffer, 0, sizeof(write_buffer));
+
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        memset(read_buffer, 0, sizeof(read_buffer));
+
+        return 0;
+    }
 
 
     apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(to_customer), sizeof(to_customer) * to_cust_id );
@@ -419,14 +444,15 @@ int viewTransaction( int client_socket, int cust_id ){
     
     int start = customer.tp;
     struct Transaction transaction;
-    for( int i = 1; i <= 10; i++ ){
-        int ci = ( start - i + 10 ) % 10;
+    for( int i = 0; i < 10; i++ ){
+        int ci = ( start - i + 15 ) % 15;
 
-        if( customer.transaction[ci] == -1 ) break;
+        if( customer.transaction[ci] == -1 ) continue;;
+        // if( customer.transaction[ci] == -1 ) break;
 
         // apply_file_lock( transaction_list_fd, LOCK_SHARED, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
 
-        lseek( transaction_list_fd, sizeof(transaction) * customer.transaction[ci], SEEK_SET );
+        lseek( transaction_list_fd, sizeof(transaction) * customer.transaction[ci - 1], SEEK_SET );
         read( transaction_list_fd, &transaction, sizeof(transaction) );
 
         // release_file_lock( transaction_list_fd, sizeof(transaction), sizeof(transaction) * customer.transaction[ci] );
@@ -473,9 +499,54 @@ int viewTransaction( int client_socket, int cust_id ){
     return 0;
 }
 
-int handle_customer( int client_socket, struct User* user, int cust_id ){
+int changePasswordCustomer( int client_socket, int cust_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
+
+    write_bytes = send( client_socket, NEW_PASSWORD, strlen(NEW_PASSWORD), 0 );
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+
+    struct Customer customer;
+    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) *cust_id );
+
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    read( cust_list_fd, &customer, sizeof(customer) );
+
+    strcpy( customer.password, read_buffer );
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    write_bytes = write( cust_list_fd, &customer, sizeof(customer) );
+
+    release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
+
+    close( cust_list_fd );
+
+    if( write_bytes == -1 ){
+        strcpy( write_buffer, "Some error occured. Password change failed.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+    else{
+        strcpy( write_buffer, "Password changed successfully.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    return 0;
+}
+
+bool handle_customer( int client_socket, struct User* user, int cust_id ){
+    char read_buffer[1000], write_buffer[1000];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
 
     printf("customer started\n");
     while( 1 ){
@@ -515,10 +586,13 @@ int handle_customer( int client_socket, struct User* user, int cust_id ){
                 viewTransaction(client_socket, cust_id);
                 break;
             case 8 :  // Change Password
-
-            
+                changePasswordCustomer(client_socket, cust_id);
+                break;
             case 9 :  // Logout
-
+                strcpy( write_buffer, "#*#logout#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
             
             case 10 :  // Exit
 
@@ -531,7 +605,7 @@ int handle_customer( int client_socket, struct User* user, int cust_id ){
     
     }
 
-    return 0;
+    return false;
 }
 
 #endif

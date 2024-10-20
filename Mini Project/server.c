@@ -22,7 +22,7 @@
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE_SIZE 256
 
-int handle_login( int client_socket, struct User *user ){
+int handle_login( int client_socket, struct User *user, struct sembuf *sem_op, int *sem_id ){
     // int users_file_fd = open( "users.txt", O_RDWR );
     // int total_user_fd = open( "totalClients", O_RDWR );
     // if ( users_file_fd == -1 || total_user_fd == -1 ) {
@@ -32,16 +32,16 @@ int handle_login( int client_socket, struct User *user ){
     
     int isValid = 0;
     if( user->access_lvl == 1 ){
-        isValid = admin_login( client_socket, user );
+        isValid = admin_login( client_socket, user, sem_op, sem_id );
     }
     else if ( user->access_lvl == 2 ){
-        isValid = employee_login( client_socket, user, 1 );
+        isValid = employee_login( client_socket, user, 1, sem_op, sem_id );
     }
     else if ( user->access_lvl == 3 ){
-        isValid = employee_login( client_socket, user, 0 );
+        isValid = employee_login( client_socket, user, 0, sem_op, sem_id );
     }
     else if ( user->access_lvl == 4 ){
-        isValid = customer_login( client_socket, user );
+        isValid = customer_login( client_socket, user, sem_op, sem_id );
     }
     else{
 
@@ -131,82 +131,102 @@ int main(){
             // ************* CLIENT HANDLING *************
             close(server_socket);
 
-            struct User user;
-            // struct User user = {"client1", "client123"};
-            send( client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0 );
-            recv( client_socket, &user, sizeof(user), 0 );
+            while( 1 ){
 
-            // user.username = "client";
-            // user.password = "client123";
+                struct User user;
+                send( client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0 );
+                recv( client_socket, &user, sizeof(user), 0 );
 
-            // int users_file_fd = open( "users.txt", O_RDONLY | O_WRONLY );
 
-            
-            // char buff[15];
-            // send(client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0);
+                struct sembuf sem_operation;
+                int sem_id;
 
-            // recv(client_socket, &buff, sizeof(buff), 0);
-            // int login_level = atoi( buff );
+                int isValid = handle_login( client_socket, &user, &sem_operation, &sem_id );
+                bool logout = false;
 
-            int isValid = handle_login( client_socket, &user );
-            // int isValid = 1;
+                if( isValid ){
 
-            if( isValid ){
+                    printf("Client is connected to the server\n");
 
-                printf("Client is connected to the server\n");
+                    char read_buffer[1000], write_buffer[1000];
+                    int read_bytes, write_bytes;
+                    int choice;
 
-                char read_buffer[1000], write_buffer[1000];
-                int read_bytes, write_bytes;
-                int choice;
-
-                // write_bytes = send(client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0);
-                // write_bytes = send(client_socket, "INITIAL_PROMPT", strlen("INITIAL_PROMPT"), 0);
-                // if (write_bytes == -1) {
-                //     perror("Sending initial prompt\n");
-                //     return 0;
-                // }
-                // memset(read_buffer, 0, sizeof(read_buffer));
-
-                // printf("1st\n");
-                // read_bytes = recv(client_socket, &read_buffer, sizeof(read_buffer), 0);
-                // printf( "%d, %d\n", read_bytes, choice );
-                // if (read_bytes == -1) {
-                //     perror("Reading choice\n");
-                //     return 0;
-                // }
-                // if (read_bytes == 0) {
-                //     printf("No data from client\n");
-                // }
-
-                // printf("2ndt\n");
-                // choice = atoi(read_buffer);
-                // printf("choice %d\n", choice);
-
-                switch ( isValid ) {
-                    case 1:
-                        handle_admin(client_socket, &user);
-                        break;
-                    case 2:
-                        handle_manager(client_socket, &user);
-                        break;
-                    case 3:
-                        handle_employee(client_socket, &user, user.id);
-                        break;
-                    case 4:
-                        handle_customer(client_socket, &user, user.id);
-                        break;
-                    default:
-                        // exit_handler(client_socket);
-                        break;
+                    switch ( isValid ) {
+                        case 1:
+                            logout = handle_admin(client_socket, &user);
+                            break;
+                        case 2:
+                            logout = handle_manager(client_socket, &user);
+                            break;
+                        case 3:
+                            logout = handle_employee(client_socket, &user, user.id);
+                            break;
+                        case 4:
+                            logout =  handle_customer(client_socket, &user, user.id);
+                            break;
+                        default:
+                            // exit_handler(client_socket);
+                            break;
+                    }
+                // sleep(3);
+                    if( logout == true ) {
+                        unlock_login_sem( &sem_operation, sem_id );
+                        printf("logout req\n");
+                        // int iy = send( client_socket, "#*#logout#*#", strlen("#*#logout#*#"), 0 );
+                        // printf("iy: %d\n", iy);
+                        continue;
+                    }
+                    
                 }
-            sleep(3);
-                
-            }
-            else{
+                else{
+
+                }
+                close( client_socket );
+                _exit(0);
+
 
             }
-            close( client_socket );
-            _exit(0);
+
+            // struct User user;
+            // send( client_socket, INITIAL_PROMPT, strlen(INITIAL_PROMPT), 0 );
+            // recv( client_socket, &user, sizeof(user), 0 );
+
+            // int isValid = handle_login( client_socket, &user );
+
+            // if( isValid ){
+
+            //     printf("Client is connected to the server\n");
+
+            //     char read_buffer[1000], write_buffer[1000];
+            //     int read_bytes, write_bytes;
+            //     int choice;
+
+            //     switch ( isValid ) {
+            //         case 1:
+            //             handle_admin(client_socket, &user);
+            //             break;
+            //         case 2:
+            //             handle_manager(client_socket, &user);
+            //             break;
+            //         case 3:
+            //             handle_employee(client_socket, &user, user.id);
+            //             break;
+            //         case 4:
+            //             handle_customer(client_socket, &user, user.id);
+            //             break;
+            //         default:
+            //             // exit_handler(client_socket);
+            //             break;
+            //     }
+            // sleep(3);
+                
+            // }
+            // else{
+
+            // }
+            // close( client_socket );
+            // _exit(0);
             
         }
         else{

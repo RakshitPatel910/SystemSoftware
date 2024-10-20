@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "../structures/users.h"
 #include "../structures/loan.h"
@@ -19,10 +20,11 @@
 #include "./commonFunc.h"
 #include "./const.h"
 
-int handle_manager( int client_socket, struct User* user );
+bool handle_manager( int client_socket, struct User* user );
 int actDeactCustomerAccount( int client_socket );
 int assignLoanApplication( int client_socket );
 int reviewFeedback( int client_socket );
+int changePasswordManager( int client_socket, int manager_id );
 
 int actDeactCustomerAccount( int client_socket ){
     int read_bytes, write_bytes;
@@ -48,9 +50,11 @@ int actDeactCustomerAccount( int client_socket ){
     release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) * cust_acc_no );
 
     if( customer.active == false ){
-        strcpy( write_buffer, "Customer with acc. no. %d is deactive\nEnter 1 to activate the customer: \n");
+        sprintf( buffer, "Customer with acc. no. %d is deactive\nEnter 1 to activate the customer: \n", customer.acc_no );
+        strcpy( write_buffer, buffer );
         write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
         memset(write_buffer, 0, sizeof(write_buffer));
+        memset(buffer, 0, sizeof(buffer));
 
         read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
         int opt = atoi( read_buffer );
@@ -65,23 +69,27 @@ int actDeactCustomerAccount( int client_socket ){
 
             release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) * cust_acc_no );
 
-            strcpy( write_buffer, "Customer with acc. no. %d is activated.\n");
+            sprintf( buffer, "Customer with acc. no. %d is activated.\n", customer.acc_no);
+            strcpy( write_buffer, buffer );
             write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
             memset(write_buffer, 0, sizeof(write_buffer));
+            memset(buffer, 0, sizeof(buffer));
 
             // read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
         }
     }
     else{
-        strcpy( write_buffer, "Customer with acc. no. %d is active\nEnter 1 to deactivate the customer: \n");
+        sprintf( buffer, "Customer with acc. no. %d is active\nEnter 1 to deactivate the customer: \n", customer.acc_no );
+        strcpy( write_buffer, buffer );
         write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
         memset(write_buffer, 0, sizeof(write_buffer));
+        memset(buffer, 0, sizeof(buffer));
 
         read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
         int opt = atoi( read_buffer );
 
         if( opt = 1 ){
-            customer.active = true;
+            customer.active = false;
             
             apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) * cust_acc_no );
  
@@ -90,9 +98,11 @@ int actDeactCustomerAccount( int client_socket ){
 
             release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) * cust_acc_no );
 
-            strcpy( write_buffer, "Customer with acc. no. %d is deactivated.\n");
+            sprintf( buffer, "Customer with acc. no. %d is deactivated.\n", customer.acc_no);
+            strcpy( write_buffer, buffer );
             write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
             memset(write_buffer, 0, sizeof(write_buffer));
+            memset(buffer, 0, sizeof(buffer));
 
             // read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
         }
@@ -261,9 +271,55 @@ int reviewFeedback( int client_socket ){
 
 }
 
-int handle_manager( int client_socket, struct User* user ){
+int changePasswordManager( int client_socket, int manager_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
+
+    write_bytes = send( client_socket, NEW_PASSWORD, strlen(NEW_PASSWORD), 0 );
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+
+    struct Employee manager;
+    apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(manager), sizeof(manager) *manager_id );
+
+    lseek( emp_list_fd, sizeof(manager) * manager_id, SEEK_SET );
+    read( emp_list_fd, &manager, sizeof(manager) );
+
+    strcpy( manager.password, read_buffer );
+    lseek( emp_list_fd, sizeof(manager) * manager_id, SEEK_SET );
+    write_bytes = write( emp_list_fd, &manager, sizeof(manager) );
+
+    release_file_lock( emp_list_fd, sizeof(manager), sizeof(manager) *manager_id );
+
+
+    close( emp_list_fd );
+
+    if( write_bytes == -1 ){
+        strcpy( write_buffer, "Some error occured. Password change failed.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+    else{
+        strcpy( write_buffer, "Password changed successfully.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    return 0;
+}
+
+bool handle_manager( int client_socket, struct User* manager ){
+    char read_buffer[1000], write_buffer[1000];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
 
     printf("manager started\n");
     while( 1 ){
@@ -290,12 +346,15 @@ int handle_manager( int client_socket, struct User* user ){
             case 3 :  // Review Customer Feedback
                 reviewFeedback( client_socket );
                 break;
-            case 4 : { // Change Password
+            case 4 :  // Change Password
+                changePasswordManager( client_socket, manager->id );
+                break;
+            case 5 :  // Logout
+                strcpy( write_buffer, "#*#logout#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
 
-            }
-            case 5 : { // Logout
-
-            }
             case 6 : { // Exit
 
             }
@@ -307,7 +366,7 @@ int handle_manager( int client_socket, struct User* user ){
     
     }
 
-    return 0;
+    return false;
 }
 
 #endif

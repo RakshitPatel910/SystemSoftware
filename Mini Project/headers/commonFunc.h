@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/sem.h>
 #include <string.h>
 #include <errno.h>
 
@@ -16,6 +17,58 @@ typedef enum {
     LOCK_SHARED = 1,
     LOCK_EXCLUSIVE = 2
 } LockType;
+
+int initialise_semphore(int ID, char *file_path);
+bool lock_login_sem(struct sembuf *semOp, int sem_id);
+bool unlock_login_sem(struct sembuf *semOp, int sem_id);
+
+int initialise_semphore(int ID, char *file_path) {
+    key_t sem_key = ftok(file_path, ID);
+    union semun {
+        int val;
+    } semSet;
+
+    int semctlStatus;
+    int sem_id = semget(sem_key, 1, 0);
+    if (sem_id == -1) {
+        sem_id = semget(sem_key, 1, IPC_CREAT | 0700);
+        if (sem_id == -1) {
+            perror("Error while creating semaphore");
+            _exit(1);
+        }
+
+        semSet.val = 1;
+        semctlStatus = semctl(sem_id, 0, SETVAL, semSet);
+        if (semctlStatus == -1) {
+            perror("Error while initializing a binary sempahore");
+            _exit(1);
+        }
+    }
+    return sem_id;
+}
+
+bool lock_login_sem(struct sembuf *semOp, int sem_id) {
+    semOp->sem_flg = SEM_UNDO;
+    semOp->sem_op = -1;
+    semOp->sem_num = 0;
+    int semopStatus = semop(sem_id, semOp, 1);
+    if (semopStatus == -1) {
+        perror("Error locking login");
+        return false;
+    }
+    return true;
+}
+
+bool unlock_login_sem(struct sembuf *semOp, int sem_id) {
+    semOp->sem_op = 1;
+    int semopStatus = semop(sem_id, semOp, 1);
+    if (semopStatus == -1) {
+        perror("Error unlocking login!");
+        _exit(1);
+    }
+    return true;
+}
+
 
 void lock_file(int fd, LockType lock_type) {
     struct flock lock;
@@ -125,7 +178,7 @@ int addTransaction(  struct Transaction* transaction ){
     return 0;
 }
 
-int admin_login( int client_socket, struct User *user ){
+int admin_login( int client_socket, struct User *user, struct sembuf *sem_op, int *sem_id ){
     int admin_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_RDONLY );
 
     struct Admin admin;
@@ -134,6 +187,9 @@ int admin_login( int client_socket, struct User *user ){
     lseek( admin_list_fd, 0, SEEK_SET );
     while ( read( admin_list_fd, &admin, sizeof(admin) ) > 0 ){
         if( strcmp(user->username, admin.username) == 0 && strcmp(user->password, admin.password) == 0 ){
+            *sem_id = initialise_semphore( admin.id, "./dataBaseFiles/admin/admin.txt" );
+            lock_login_sem( sem_op, *sem_id );
+
             isValid = 1;
             user->id = admin.id;
 
@@ -154,7 +210,7 @@ int admin_login( int client_socket, struct User *user ){
     return isValid;
 }
 
-int employee_login( int client_socket, struct User *user, int emp_type ){
+int employee_login( int client_socket, struct User *user, int emp_type, struct sembuf *sem_op, int *sem_id ){
     int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDONLY );
 
     struct Employee emp;
@@ -164,6 +220,9 @@ int employee_login( int client_socket, struct User *user, int emp_type ){
     while( read( emp_list_fd, &emp, sizeof(emp) ) > 0 ){
         if( strcmp(user->username, emp.username) == 0 && strcmp(user->password, emp.password) == 0 ){
             if( emp.role == emp_type ){
+                *sem_id = initialise_semphore( emp.id, "./dataBaseFiles/employee/employee.txt" );
+                lock_login_sem( sem_op, *sem_id );
+                
                 isValid = emp_type == 1 ? 2 : 3;
                 user->id = emp.id;
 
@@ -185,8 +244,8 @@ int employee_login( int client_socket, struct User *user, int emp_type ){
     return isValid;
 }
 
-int customer_login( int client_socket, struct User *user ){
-    int cust_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_RDONLY );
+int customer_login( int client_socket, struct User *user, struct sembuf *sem_op, int *sem_id ){
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDONLY );
 
     struct Customer customer;
     int isValid = 0;
@@ -195,7 +254,12 @@ int customer_login( int client_socket, struct User *user ){
     while ( read( cust_list_fd, &customer, sizeof(customer) ) > 0 ){
         printf( "%s, %s\n", customer.username, customer.password );
         
+
         if( strcmp(user->username, customer.username) == 0 && strcmp(user->password, customer.password) == 0 ){
+            if( customer.active == 0 ) break;
+
+            *sem_id = initialise_semphore( customer.acc_no, "./dataBaseFiles/customer/customer.txt" );
+            lock_login_sem( sem_op, *sem_id );
             isValid = 4;
             user->id = customer.acc_no;
 

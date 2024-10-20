@@ -24,6 +24,10 @@ struct Customer {
     char password[15];
     int transaction[15];
     int tp;
+
+    char name[40];
+    char gender;
+    int age;
 };
 
 struct Employee {

@@ -39,10 +39,8 @@
 2. Modify customer details\n\
 3. Process loan application\n\
 4. View Assigned Loan\n\
-5. Reject Loan\n\
-6. Accept Loan\n\
-7. Change password\n\
-8. Logout\n\
+5. Change password\n\
+6. Logout\n\
 "
 
 #define MANAGER_MENU \
@@ -92,9 +90,9 @@
 #define DEPOSIT_AMOUNT "Enter the amount you want to deposit: "
 #define TRANSFER_AMOUNT "Enter the amount you want to Transfer: "
 #define WHOM_TO_TRANSFER \
-    "Enter the Acc. number to whom you want to transfer the funds"
+    "Enter the Acc. number to whom you want to transfer the funds: "
 #define INSUFFICIENT_BALANCE \
-    "Balance is not sufficient, please try with a lower amount"
+    "Balance is not sufficient, please try with a lower amount\n"
 #define NEGATIVE_BALANCE \
     "Invalid withdraw amount, please try with valid amount\n"
 

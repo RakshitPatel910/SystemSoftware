@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "../structures/users.h"
 #include "../structures/loan.h"
@@ -22,11 +23,12 @@
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE_SIZE 256
 
-int handle_employee( int client_socket, struct User *employee, int emp_id );
+bool handle_employee( int client_socket, struct User *employee, int emp_id );
 int addCustomer( int client_socket );
 int modifyCustomer( int client_socket );
 int processLoanApplication( int client_socket, int empId );
 int viewAssignedLoans( int client_socket, int empId );
+int changePasswordManager( int client_socket, int emp_id );
 
 int addCustomer( int client_socket ){
     struct Customer customer;
@@ -36,6 +38,49 @@ int addCustomer( int client_socket ){
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
     
+    send( client_socket, ASK_NAME, strlen(ASK_NAME), 0 );
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    strcpy( customer.name, read_buffer );
+    memset(read_buffer, 0, sizeof(read_buffer));
+
+    send( client_socket, ASK_AGE, strlen(ASK_AGE), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        customer.age = atoi(read_buffer);
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( customer.age > 0 && customer.age < 150){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid age\n" );
+            strcat( write_buffer, ASK_AGE );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
+    send( client_socket, ASK_GENDER, strlen(ASK_GENDER), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        // strcpy( customer.gender, read_buffer );
+        customer.gender = read_buffer[0];
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( customer.gender == 'M' || customer.gender == 'F' ){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid gender\n" );
+            strcat( write_buffer, ASK_GENDER );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
     send( client_socket, ASK_CUST_UNAME, strlen(ASK_CUST_UNAME), 0 );
 
     recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
@@ -127,6 +172,85 @@ int addCustomer( int client_socket ){
 }
 
 int modifyCustomer( int client_socket ){
+    struct Customer customer;
+    int read_bytes, write_bytes;
+    char read_buffer[1000], write_buffer[1000];
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+    
+    send( client_socket, ASK_CUST_ACCNO, strlen(ASK_CUST_ACCNO), 0 );
+    
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    int cust_id = atoi(read_buffer);
+    memset(read_buffer, 0, sizeof(read_buffer));
+
+    
+    int cust_list_fd = open( "./dataBaseFiles/customer/customer.txt", O_RDWR );
+
+
+    apply_file_lock( cust_list_fd, LOCK_SHARED, sizeof(customer), sizeof(customer) *cust_id );
+
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    read( cust_list_fd, &customer, sizeof(customer) );
+
+    release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
+
+
+    sprintf( write_buffer, "Acc. No: %d\nName: %s\nAge: %d\nGender: %c\n\n", customer.acc_no, customer.name, customer.age, customer.gender );
+    strcat( write_buffer, ASK_NAME );
+
+    send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    // send( client_socket, ASK_NAME, strlen(ASK_NAME), 0 );
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+    strcpy( customer.name, read_buffer );
+    memset(read_buffer, 0, sizeof(read_buffer));
+
+    send( client_socket, ASK_AGE, strlen(ASK_AGE), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        customer.age = atoi(read_buffer);
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( customer.age > 0 && customer.age < 150){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid age\n" );
+            strcat( write_buffer, ASK_AGE );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
+    send( client_socket, ASK_GENDER, strlen(ASK_GENDER), 0 );
+    while( 1 ){
+        // memset(read_buffer, 0, sizeof(read_buffer));
+        recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+        // strcpy( customer.gender, read_buffer );
+        customer.gender = read_buffer[0];
+        memset(read_buffer, 0, sizeof(read_buffer));
+    
+        if( customer.gender == 'M' || customer.gender == 'F' ){
+            break;
+        }
+        else{
+            strcpy( write_buffer, "Enter valid gender\n" );
+            strcat( write_buffer, ASK_GENDER );
+            send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+            memset(write_buffer, 0, sizeof(write_buffer));
+        }
+    }
+
+
+    apply_file_lock( cust_list_fd, LOCK_EXCLUSIVE, sizeof(customer), sizeof(customer) *cust_id );
+
+    lseek( cust_list_fd, sizeof(customer) * cust_id, SEEK_SET );
+    write( cust_list_fd, &customer, sizeof(customer) );
+
+    release_file_lock( cust_list_fd, sizeof(customer), sizeof(customer) *cust_id );
 
 
     return 0;
@@ -261,10 +385,55 @@ int viewAssignedLoans( int client_socket, int empId ){
     return 0;
 }
 
-
-int handle_employee( int client_socket, struct User *employee, int emp_id ){
+int changePasswordEmployee( int client_socket, int emp_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    int emp_list_fd = open( "./dataBaseFiles/employee/employee.txt", O_RDWR );
+
+    write_bytes = send( client_socket, NEW_PASSWORD, strlen(NEW_PASSWORD), 0 );
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+
+    struct Employee manager;
+    apply_file_lock( emp_list_fd, LOCK_EXCLUSIVE, sizeof(manager), sizeof(manager) *emp_id );
+
+    lseek( emp_list_fd, sizeof(manager) * emp_id, SEEK_SET );
+    read( emp_list_fd, &manager, sizeof(manager) );
+
+    strcpy( manager.password, read_buffer );
+    lseek( emp_list_fd, sizeof(manager) * emp_id, SEEK_SET );
+    write_bytes = write( emp_list_fd, &manager, sizeof(manager) );
+
+    release_file_lock( emp_list_fd, sizeof(manager), sizeof(manager) *emp_id );
+
+
+    close( emp_list_fd );
+
+    if( write_bytes == -1 ){
+        strcpy( write_buffer, "Some error occured. Password change failed.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+    else{
+        strcpy( write_buffer, "Password changed successfully.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    return 0;
+}
+
+bool handle_employee( int client_socket, struct User *employee, int emp_id ){
+    char read_buffer[1000], write_buffer[1000];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
 
     printf("employee started\n");
     while( 1 ){
@@ -293,12 +462,15 @@ int handle_employee( int client_socket, struct User *employee, int emp_id ){
             case 4 : // View Assigned Loan Applications
                 viewAssignedLoans( client_socket, emp_id );
                 break;
-            case 5 : { // Change Password
-
-            }
-            case 6 : { // Logout
-
-            }
+            case 5 :  // Change Password
+                changePasswordEmployee( client_socket, emp_id );
+                break;
+            case 6 :  // Logout
+                strcpy( write_buffer, "#*#logout#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
+            
             case 7 : { // Exit
 
             }
@@ -310,7 +482,7 @@ int handle_employee( int client_socket, struct User *employee, int emp_id ){
     
     }
 
-    return 0;
+    return false;
 }
 
 #endif

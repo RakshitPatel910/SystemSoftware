@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "../structures/users.h"
 #include "./commonFunc.h"
@@ -21,11 +22,11 @@
 #define MAX_MESSAGE_SIZE 256
 
 
-int handle_admin( int client_socket, struct User *admin );
+bool handle_admin( int client_socket, struct User *admin );
 int addEmployee( int client_socket );
 int modifyCustEmp( int client_socket );
 int manage_user_role( int client_socket );
-
+int changePasswordAdmin( int client_socket, int admin_id );
 
 int addEmployee( int client_socket ){
     printf("op 1\n");
@@ -239,9 +240,55 @@ int manage_user_role( int client_socket ){
 
 }
 
-int handle_admin( int client_socket, struct User *admin ){
+int changePasswordAdmin( int client_socket, int admin_id ){
     char read_buffer[1000], write_buffer[1000];
     int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
+
+    int admin_list_fd = open( "./dataBaseFiles/admin/admin.txt", O_RDWR );
+
+    write_bytes = send( client_socket, NEW_PASSWORD, strlen(NEW_PASSWORD), 0 );
+
+    read_bytes = recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+
+    struct Admin admin;
+    apply_file_lock( admin_list_fd, LOCK_EXCLUSIVE, sizeof(admin), sizeof(admin) *admin_id );
+
+    lseek( admin_list_fd, sizeof(admin) * admin_id, SEEK_SET );
+    read( admin_list_fd, &admin, sizeof(admin) );
+
+    strcpy( admin.password, read_buffer );
+    lseek( admin_list_fd, sizeof(admin) * admin_id, SEEK_SET );
+    write_bytes = write( admin_list_fd, &admin, sizeof(admin) );
+
+    release_file_lock( admin_list_fd, sizeof(admin), sizeof(admin) *admin_id );
+
+
+    close( admin_list_fd );
+
+    if( write_bytes == -1 ){
+        strcpy( write_buffer, "Some error occured. Password change failed.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+    else{
+        strcpy( write_buffer, "Password changed successfully.\n" );
+        write_bytes = send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+    }
+
+    recv( client_socket, read_buffer, sizeof(read_buffer), 0 );
+
+    return 0;
+}
+
+bool handle_admin( int client_socket, struct User *admin ){
+    char read_buffer[1000], write_buffer[1000];
+    int read_bytes, write_bytes;
+
+    memset(read_buffer, 0, sizeof(read_buffer));
+    memset(write_buffer, 0, sizeof(write_buffer));
 
     printf("admin started\n");
     while( 1 ){
@@ -268,12 +315,15 @@ int handle_admin( int client_socket, struct User *admin ){
             case 3 :  // Manage User Roles
                 manage_user_role( client_socket );
                 break;
-            case 4 : { // Change Password
-
-            }
-            case 5 : { // Logout
-
-            }
+            case 4 :  // Change Password
+                changePasswordAdmin( client_socket, admin->id );
+                break;
+            case 5 :  // Logout
+                strcpy( write_buffer, "#*#logout#*#" );
+                send( client_socket, write_buffer, sizeof(write_buffer), 0 );
+                memset(write_buffer, 0, sizeof(write_buffer));
+                return true;
+            
             case 6 : { // Exit
 
             }
@@ -284,7 +334,7 @@ int handle_admin( int client_socket, struct User *admin ){
         }
     
     }
-    return 0;
+    return false;
 }
 
 
